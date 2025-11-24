@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>kRR Data Poisoning Attacks Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+.container { max-width: 1200px; margin: auto; padding: 20px; }
+.card { background: white; padding: 15px; margin-bottom: 20px; border-radius: 10px; }
+h1 { text-align: center; }
+label { font-weight: bold; margin-top: 10px; display: block; }
+input, select { width: 100%; padding: 6px; margin-bottom: 10px; }
+button { padding: 10px 15px; border: none; background: #2563eb; color: white; border-radius: 6px; cursor: pointer; }
+button.secondary { background: gray; }
+canvas { background: white; padding: 10px; border-radius: 10px; }
+.grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+</style>
+</head>
+
+<body>
+<h1>kRR Data Poisoning Attacks</h1>
+
+<div class="container">
+
+<div class="grid">
+<div class="card">
+
+<h2>Scenario Selection</h2>
+
+<label>Scenario</label>
+<select id="scenario">
+  <option value="zipf">Zipf Distribution (Paper-like)</option>
+  <option value="uniform">Uniform Categories</option>
+  <option value="fire">Fire-like Dataset (244 items)</option>
+  <option value="ipums">IPUMS-like Dataset (102 items)</option>
+  <option value="custom">Custom Category Setup</option>
+</select>
+
+<label>Number of items (d)</label>
+<input type="number" id="d" value="1024" min="2">
+
+<label>Number of target items (r)</label>
+<input type="number" id="r" value="1" min="1">
+
+<label>True frequency of target items fT (if direct)</label>
+<input type="number" id="fT" value="0.01" step="0.0001">
+
+<label>Fake user fraction β</label>
+<input type="number" id="beta" value="0.05" step="0.0001">
+
+<label>Privacy budget ε</label>
+<input type="number" id="epsilon" value="1" step="0.1">
+
+<label>Parameter to plot on X-axis</label>
+<select id="xParam">
+  <option value="beta">β</option>
+  <option value="fT">fT</option>
+  <option value="epsilon">ε</option>
+  <option value="d">d</option>
+  <option value="r">r</option>
+</select>
+
+<label>X Min</label>
+<input type="number" id="xMin" value="0.0001">
+
+<label>X Max</label>
+<input type="number" id="xMax" value="0.1">
+
+<label>Points</label>
+<input type="number" id="numPoints" value="50">
+
+<button onclick="updateCharts()">Update</button>
+<button class="secondary" onclick="resetDefaults()">Reset</button>
+
+</div>
+
+<div>
+
+<div class="card">
+<h2>Overall Gain G</h2>
+<canvas id="gainChart" height="200"></canvas>
+</div>
+
+<div class="card">
+<h2>Normalized Gain (G + fT) / fT</h2>
+<canvas id="normChart" height="200"></canvas>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+
+// ------------------------------------
+// Helper: Generate Zipf distribution
+// ------------------------------------
+function zipf(d, s = 1.0) {
+  let arr = [], norm = 0;
+  for (let i = 1; i <= d; i++) norm += 1 / Math.pow(i, s);
+  for (let i = 0; i < d; i++) arr.push((1 / Math.pow(i + 1, s)) / norm);
+  return arr;
+}
+
+// ------------------------------------
+// Compute fT based on scenario
+// ------------------------------------
+function computeFT(d, r, scenario) {
+  if (scenario === "uniform") return r / d;
+  if (scenario === "zipf") return zipf(d).slice(0, r).reduce((a,b)=>a+b,0);
+  if (scenario === "fire") return (r / 244);
+  if (scenario === "ipums") return (r / 102);
+  return document.getElementById("fT").value; // direct input
+}
+
+// ------------------------------------
+// kRR Attack Formulas
+// ------------------------------------
+function G_RPA(beta, r, d, fT) {
+  return beta * (r/d - fT);
+}
+function G_RIA(beta, r, d, fT) {
+  return beta * (1 - fT);
+}
+function G_MGA(beta, r, d, fT, eps) {
+  return beta * (1 - fT) + beta * ((d - r) / (Math.exp(eps) - 1));
+}
+
+function normGain(G, fT) {
+  return (G + fT) / fT;
+}
+
+// ------------------------------------
+// Create Charts
+// ------------------------------------
+let gainChart, normChart;
+
+function initCharts() {
+  gainChart = new Chart(document.getElementById("gainChart"), {
+    type: "line",
+    data: { labels: [], datasets: [
+      { label: "RPA", data: [], borderWidth: 2 },
+      { label: "RIA", data: [], borderWidth: 2 },
+      { label: "MGA", data: [], borderWidth: 2 },
+    ]},
+    options: { scales: { y: { type: "logarithmic" }}}
+  });
+
+  normChart = new Chart(document.getElementById("normChart"), {
+    type: "line",
+    data: { labels: [], datasets: [
+      { label: "RPA", data: [], borderWidth: 2 },
+      { label: "RIA", data: [], borderWidth: 2 },
+      { label: "MGA", data: [], borderWidth: 2 },
+    ]}
+  });
+}
+
+function updateCharts() {
+  const scenario = document.getElementById("scenario").value;
+  const d = parseInt(document.getElementById("d").value);
+  const r = parseInt(document.getElementById("r").value);
+  const beta = parseFloat(document.getElementById("beta").value);
+  const eps = parseFloat(document.getElementById("epsilon").value);
+
+  const numPoints = parseInt(document.getElementById("numPoints").value);
+  const xMin = parseFloat(document.getElementById("xMin").value);
+  const xMax = parseFloat(document.getElementById("xMax").value);
+  const xParam = document.getElementById("xParam").value;
+
+  let xs = [], RPA = [], RIA = [], MGA = [];
+  let NRPA = [], NRIA = [], NMGA = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    const x = xMin + (xMax - xMin) * (i/(numPoints-1));
+
+    // copy params
+    let d_i = d, r_i = r, beta_i = beta, eps_i = eps;
+    let fT = computeFT(d_i, r_i, scenario);
+
+    if (xParam === "beta") beta_i = x;
+    if (xParam === "fT") fT = x;
+    if (xParam === "epsilon") eps_i = x;
+    if (xParam === "d") d_i = Math.round(x);
+    if (xParam === "r") r_i = Math.round(x);
+
+    const g1 = G_RPA(beta_i, r_i, d_i, fT);
+    const g2 = G_RIA(beta_i, r_i, d_i, fT);
+    const g3 = G_MGA(beta_i, r_i, d_i, fT, eps_i);
+
+    xs.push(x);
+    RPA.push(g1);
+    RIA.push(g2);
+    MGA.push(g3);
+
+    NRPA.push(normGain(g1, fT));
+    NRIA.push(normGain(g2, fT));
+    NMGA.push(normGain(g3, fT));
+  }
+
+  gainChart.data.labels = xs;
+  gainChart.data.datasets[0].data = RPA;
+  gainChart.data.datasets[1].data = RIA;
+  gainChart.data.datasets[2].data = MGA;
+  gainChart.update();
+
+  normChart.data.labels = xs;
+  normChart.data.datasets[0].data = NRPA;
+  normChart.data.datasets[1].data = NRIA;
+  normChart.data.datasets[2].data = NMGA;
+  normChart.update();
+}
+
+function resetDefaults() {
+  document.getElementById("scenario").value = "zipf";
+  document.getElementById("beta").value = 0.05;
+  document.getElementById("epsilon").value = 1;
+  document.getElementById("fT").value = 0.01;
+  document.getElementById("d").value = 1024;
+  updateCharts();
+}
+
+initCharts();
+updateCharts();
+
+</script>
+</body>
+</html>

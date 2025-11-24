@@ -1,0 +1,342 @@
+{
+"source": {
+"title": "Further Study on Frequency Estimation under Local Differential Privacy",
+"venue": "34th USENIX Security Symposium (USENIX Security ’25), Seattle, USA, Aug 13–15, 2025",
+"authors": [
+{"name": "Huiyu Fang", "affiliation": "Southeast University", "email": "[Nick_seu@hotmail.com](mailto:Nick_seu@hotmail.com)"},
+{"name": "Liquan Chen", "affiliation": "Southeast University", "email": "[lqchen@seu.edu.cn](mailto:lqchen@seu.edu.cn)"},
+{"name": "Suhui Liu", "affiliation": "Southeast University", "email": "[suhuiliu@seu.edu.cn](mailto:suhuiliu@seu.edu.cn)"}
+],
+"url": "/mnt/data/further_study.pdf",
+"citation": "",
+"pages": 18,
+"proceedings_isbn": "978-1-939133-52-6",
+"landing_page": "[https://www.usenix.org/conference/usenixsecurity25/presentation/fang](https://www.usenix.org/conference/usenixsecurity25/presentation/fang)",
+"cover_page_note": "Open access proceedings sponsored by USENIX.",
+"metadata_citation": ""
+},
+"abstract": "The paper studies frequency estimation under Local Differential Privacy (LDP). It introduces a precise, universal analytical mean-squared-error (MSE) equation for pure frequency protocols, enabling more accurate accuracy analysis across frequencies and exposing how domain size d affects variance. The authors quantify accuracy, computation, and communication costs of state-of-the-art protocols (GRR, OUE, OLH, SS); re-optimize UE and LH (RUE, RLH) for small domains; reduce OLH’s aggregation time by replacing hashing with reproducible randomized grouping; and propose Random Wheel Spinner (RWS), which fuses LH and SS to achieve optimal accuracy with low computation and communication costs. Experiments on Zipf synthetic and NYC Yellow Taxi datasets validate the analysis. ",
+"contributions": [
+"Universal analytical MSE equation for pure frequency protocols; clarifies dependence on domain size d and helps pick rounding parameters. ",
+"Quantitative accuracy/computation/communication comparison of GRR, OUE, OLH, SS (Table 2). ",
+"Re-optimized UE/LH (RUE/RLH) improving accuracy for small domains; RLH reduces server aggregation from O(nd log d) to O(nd). ",
+"Random Wheel Spinner (RWS): optimal accuracy of SS with O(log n) communication (LH-like), low aggregation cost; validated experimentally. "
+],
+"notation_and_setup": {
+"n": "number of users",
+"d": "domain size, [d] = {1, 2, ..., d}",
+"fi": "true frequency of value i",
+"ε": "privacy budget",
+"p*": "prob. an output supports its true input value",
+"q*": "prob. an output supports some other input value",
+"Support(y)": "set of inputs supported by output y",
+"framework_reference": "Pure frequency protocols framework (Wang 2017). "
+},
+"definitions": [
+{
+"id": "def1",
+"name": "ε-Local Differential Privacy",
+"statement": "Algorithm A satisfies ε-LDP if for any inputs v, v′ and any output y: Pr[A(v)=y] ≤ e^ε · Pr[A(v′)=y].",
+"pages": [2],
+"citation": ""
+},
+{
+"id": "def2",
+"name": "Pure Frequency Protocols",
+"statement": "A protocol is pure iff there exist p* > q* s.t. for any input v, Pr[A(v) ∈ {y | v ∈ Support(y)}] = p* and for any v′ ≠ v, Pr[A(v′) ∈ {y | v ∈ Support(y)}] = q*.",
+"pages": [3],
+"citation": ""
+}
+],
+"core_equations": [
+{
+"id": "eq1",
+"name": "Unbiased frequency estimator (pure protocols)",
+"latex": " \hat f_i = \frac{\sum_{k=1}^{n} \mathbf{1}_{\text{Support}(y_k)}(i) - n q^*}{n (p^* - q^*)} ",
+"page_hint": 4,
+"citation": "",
+"variables": {"i": "value index", "y_k": "k-th user report"}
+},
+{
+"id": "eq2",
+"name": "Exact variance of \hat f_i",
+"latex": " \operatorname{Var}[\hat f_i] = \frac{q^*(1-q^*)}{n (p^*-q^*)^2} + \frac{f_i(1 - p^* - q^*)}{n (p^* - q^*)} ",
+"page_hint": 4,
+"notes": "Shows slope w.r.t. frequency f_i; motivates MSE aggregation.",
+"citation": ""
+},
+{
+"id": "eq3",
+"name": "Approximate variance (large d or no dominant f_i)",
+"latex": " \operatorname{Var}^*[\hat f_i] = \frac{q^*(1-q^*)}{n (p^*-q^*)^2} ",
+"page_hint": 4,
+"citation": ""
+},
+{
+"id": "eq4",
+"name": "Analytical MSE (this paper)",
+"latex": " \mathrm{MSE} = \frac{q^*(1-q^*)}{n (p^*-q^*)^2} + \frac{1 - p^* - q^*}{n d (p^* - q^*)} = \frac{q^*(1-q^*)}{n (p^*-q^*)^2} + \frac{1}{n d} + \frac{1 - 2 p^*}{n d (p^* - q^*)} ",
+"importance": "Central—captures dependence on d and guides parameter selection.",
+"page_hint": 4,
+"citation": ""
+}
+],
+"protocols": {
+"GRR": {
+"type": "Generalized Randomized Response",
+"encoding": "Encode(v)=v ∈ [d].",
+"perturbation": "Output y ∈ [d]; p = e^ε/(e^ε + d − 1) if y=v else q = 1/(e^ε + d − 1).",
+"aggregation": "Count supports of each i; use Eq. (1) with p*=p, q*=q.",
+"analytical_MSE": "MSE_GRR = (e^ε + d − 2)/(n (e^ε − 1)^2) + (d − 2)/(n d (e^ε − 1)).",
+"costs": {"communication": "O(log d)", "user_compute": "O(1)", "server_aggregation": "O(n) (typ. n ≫ d)"},
+"pages": [5],
+"citation": ""
+},
+"OUE": {
+"type": "Optimized Unary Encoding",
+"encoding": "One-hot vector B ∈ {0,1}^d with B_v=1.",
+"perturbation": "Bitwise independent: if B_j=1 → 1 w.p. p=1/2; if B_j=0 → 1 w.p. q=1/(e^ε+1).",
+"aggregation": "Sum reported vectors; i supports if bit i is 1; use Eq. (1).",
+"analytical_MSE": "MSE_OUE = 4 e^ε / (n (e^ε − 1)^2) + 1/(n d).",
+"costs": {"communication": "O(d)", "user_compute": "O(d)", "server_aggregation": "O(n d)"},
+"pages": [5],
+"citation": ""
+},
+"OLH": {
+"type": "Optimized Local Hashing",
+"encoding": "Choose seed s; hash H maps [d]→[g] with g≈e^ε+1; encode ⟨H, x=H(v)⟩.",
+"perturbation": "GRR over [g]: p=e^ε/(e^ε+g−1), q=1/(e^ε+g−1).",
+"aggregation": "Regenerate H from s; an i is supported if H(i)=y; effective q* = 1/g; use Eq. (1).",
+"analytical_MSE": "MSE_OLH = 4 e^ε / (n (e^ε − 1)^2) + 1/(n d).",
+"costs": {"communication": "O(log n) (seed + y)", "user_compute": "O(log d) (1 hash call)", "server_aggregation": "O(n d log d) (nd hash calls)"},
+"pages": [5],
+"citation": ""
+},
+"SS": {
+"type": "Subset Selection",
+"encoding_perturbation": "Output k-subset of [d] that contains v w.p. p= k e^ε /(k e^ε + d − k); otherwise from Z2 w.p. q=(d−k)/(k e^ε + d − k). Optimal k≈d/(e^ε+1).",
+"aggregation": "Each element in output subset supports itself; p* = p, q* = p (k−1)/(d−1) + (1−p) k/(d−1); use Eq. (1).",
+"analytical_MSE": "MSE_SS = 4 e^ε/(n (e^ε −1)^2) − ((d−1)e^{2ε} + (6d−2)e^ε + d − 1)/(n d^2 (e^ε − 1)^2).",
+"costs": {"communication": "O(d)", "user_compute": "O(d) (generate subset)", "server_aggregation": "O(n d)"},
+"pages": [6],
+"citation": ""
+}
+},
+"further_optimized_protocols": {
+"RUE": {
+"name": "Re-optimized Unary Encoding",
+"privacy_condition": "UE satisfies ε-LDP if p = e^ε q / (1 − q + e^ε q).",
+"optimization": "Minimize analytical MSE (Eq. 4) over q; introduces similarity factor h depending on d and ε. When d=2, parameters reduce to SUE; as d→∞, to OUE.",
+"analytical_MSE": "MSE_RUE = 2 e^ε/(n (e^ε − 1)^2) + 2 e^ε/(n h (e^ε − 1)^2) − 2/(n d h (e^ε − 1)).",
+"benefit": "Improves accuracy for small/medium d versus OUE.",
+"costs": {"communication": "O(d)", "server_aggregation": "O(n d)"},
+"pages": [6],
+"citation": ""
+},
+"RLH": {
+"name": "Re-optimized Local Hashing",
+"encoding_change": "Replace hash H by reproducible randomized grouping vector B (seeded RNG) mapping [d]→[g]; reduces server calls.",
+"optimization": "Choose g using analytical MSE; introduces same h factor; g ranges from e^{ε/2}+1 (small d) to e^ε+1 (large d).",
+"analytical_MSE": "MSE_RLH = 2 e^ε/(n (e^ε − 1)^2) + 2 e^ε/(n h (e^ε − 1)^2) − 2/(n d h (e^ε − 1)).",
+"costs": {"communication": "O(log n)", "server_aggregation": "O(n d) (vs. OLH’s O(n d log d))"},
+"runtime_example": "For Taxi dataset at d=2^12, RLH aggregation ~88.5s vs. OLH ~8101.2s (~90× faster). ",
+"pages": [6,7],
+"citation": ""
+},
+"RWS": {
+"name": "Random Wheel Spinner",
+"intuition": "Spin a biased wheel over [d] starting at v; report seed s that defines a random k-subset and a rotation y; the processed (k-subset + y) supports the true value.",
+"parameters": {
+"k_opt": "k = d/(e^ε + 1) (round to nearest integer).",
+"bias": "Within k-subset: e^ε/(k e^ε + d − k); outside: 1/(k e^ε + d − k).",
+"pure_params": {
+"p*": "k · p",
+"q*": "p* · (k−1)/(d−1) + (1−p*) · (k/(d−1))"
+}
+},
+"analytical_MSE": "Equal to SS (optimal): 4 e^ε/(n (e^ε − 1)^2) − ((d−1)e^{2ε} + (6d−2)e^ε + d − 1)/(n d^2 (e^ε − 1)^2).",
+"privacy": "ε-LDP (Theorem 2).",
+"complexity": {"communication": "O(log n) (seed + y)", "server_aggregation": "O(n d)", "user_compute": "O(d) to generate subset"},
+"pages": [8],
+"figure_reference": "Figure 1 illustrates the RWS workflow (page 8).",
+"citations": [""]
+}
+},
+"coefficient_h": {
+"definition": "Similarity factor between re-optimized (RUE/RLH) and original (OUE/OLH) parameters; h→1 for larger d or smaller ε.",
+"table": {
+"columns": ["ε/d", "50", "100", "500", "1000"],
+"rows": [
+{"ε": 0.5, "values": [0.9897, 0.9948, 0.9990, 0.9995]},
+{"ε": 1,   "values": [0.9770, 0.9884, 0.9977, 0.9988]},
+{"ε": 2,   "values": [0.9335, 0.9653, 0.9928, 0.9964]},
+{"ε": 3,   "values": [0.8426, 0.9120, 0.9805, 0.9901]},
+{"ε": 4,   "values": [0.6879, 0.8029, 0.9494, 0.9738]},
+{"ε": 5,   "values": [0.4982, 0.6326, 0.8779, 0.9331]}
+]
+},
+"citation": ""
+},
+"comparisons": {
+"table_2_summary": {
+"what": "Comparison of GRR, OUE, RUE, OLH, RLH, SS, RWS: analytical MSE, limits (d=2, d→∞), aggregation cost, communication cost.",
+"note": "OLH/RLH/SS/RWS equations ignore rounding of g or k in the table; for precise analysis plug rounded values into Eq. (4), (12), (15).",
+"page_hint": 9,
+"citation": ""
+},
+"intersection_point": {
+"between": "GRR vs. OUE/OLH",
+"d_star": "d = e^ε + 3/2 + sqrt(2 e^{2ε} + 3 e^ε + 5/4) ≈ 2.41 e^ε + 2.56",
+"improvement_over_prior": "Refines earlier 3 e^ε + 2 estimate based on approximate variance.",
+"citation": ""
+},
+"guidelines": [
+"If d < sqrt(2 e^{2ε} + 0.25) + 1.5 (i.e., k_opt = 1), GRR/SS/RWS are optimal. ",
+"If sqrt(2 e^{2ε} + 0.25) + 1.5 < d and O(d) comms is acceptable, use SS or RWS. ",
+"For very large d where comms O(d) is unacceptable and MSE of RLH/RWS → 4 e^ε / (n (e^ε − 1)^2), use RLH or RWS with O(log n) comms. ",
+"One-size choice across d: RWS (optimal MSE, low compute and comms). "
+],
+"wheel_mechanism_relation": {
+"statement": "Wheel Mechanism is a continuous LH: with coverage c, true/false coverage correspond to p* = e^ε/(e^ε + g − 1) and q* = 1/g when c = 1/g; optimal accuracy same as RLH with c = 1/(h (e^ε+1)). RWS achieves higher accuracy by enforcing fixed-size support sets.",
+"citation": ""
+}
+},
+"tables": {
+"table_1_h_values": {
+"description": "h for various d, ε (see coefficient_h above).",
+"page_hint": 7,
+"citation": ""
+},
+"table_2_protocol_comparison": {
+"key_fields": ["Protocol", "Analytical MSE", "d=2 limit", "d→∞ limit", "Aggregation cost", "Communication cost"],
+"page_hint": 9,
+"citation": ""
+},
+"table_3_numeric_nMSE": {
+"ε": 4,
+"values": [
+{"d": "2^1", "GRR": 0.01901, "OUE": 0.5760, "RUE": 0.1811, "OLH": 0.5798, "RLH": 0.1812, "SS": 0.01901, "RWS": 0.01901},
+{"d": "2^4", "GRR": 0.04020, "OUE": 0.1385, "RUE": 0.1148, "OLH": 0.1390, "RLH": 0.1148, "SS": 0.04020, "RWS": 0.04020},
+{"d": "2^7", "GRR": 0.08123, "OUE": 0.08383, "RUE": 0.08311, "OLH": 0.08389, "RLH": 0.08311, "SS": 0.06747, "RWS": 0.06747},
+{"d": "2^10", "GRR": 0.3934, "OUE": 0.07700, "RUE": 0.07699, "OLH": 0.07701, "RLH": 0.07699, "SS": 0.07491, "RWS": 0.07491}
+],
+"note": "Small differences between OUE vs. OLH and RUE vs. RLH reflect rounding effects.",
+"page_hint": 10,
+"citation": ""
+}
+},
+"figures": [
+{
+"id": "fig1",
+"title": "Random Wheel Spinner protocol visualization",
+"content_summary": "Wheel over d sectors, start at v, use seed s to build k-subset; spin by y; report (s, y); data collector shifts subset by y (mod d) to form supporting set.",
+"page_hint": 8,
+"citation": ""
+},
+{
+"id": "fig2",
+"title": "Analytical n·MSE vs. domain size",
+"content_summary": "Two panels: (a) GRR/OUE/RUE/SS; (b) OLH/RLH/RWS, with ε=4. Shows SS/RWS best across d; OUE≈OLH, RUE≈RLH.",
+"page_hint": 10,
+"citation": ""
+},
+{
+"id": "fig3",
+"title": "True frequencies for experimental datasets (d = 2^7)",
+"content_summary": "Zipf (s=1.1): heavy head; Taxi pickup times: more even top frequencies.",
+"page_hint": 11,
+"citation": ""
+},
+{
+"id": "fig4",
+"title": "Empirical vs. analytical MSE (ε=4)",
+"content_summary": "Close match on both datasets; slight small-d fluctuations due to averaging with small sample size of values.",
+"page_hint": 12,
+"citation": ""
+},
+{
+"id": "fig5",
+"title": "Empirical MSE across protocols",
+"content_summary": "RWS and SS nearly identical and best; RUE/RLH improve small-d accuracy over OUE/OLH; GRR only best at very small d.",
+"page_hint": 13,
+"citation": ""
+},
+{
+"id": "fig6",
+"title": "Top-k MSE (d=2^7, ε=4)",
+"content_summary": "On Zipf, RUE/RLH slightly best for very small k (≤6); RWS/SS best overall; on Taxi, RWS/SS best for all k.",
+"page_hint": 14,
+"citation": ""
+},
+{
+"id": "fig7",
+"title": "Aggregation runtime vs. d (ε=4)",
+"content_summary": "OLH grows fastest (hash calls); RLH ≪ OLH; RWS grows slower than OUE/RUE; SS and RWS grow with k≈d/(e^ε+1).",
+"page_hint": 14,
+"citation": ""
+}
+],
+"experiments": {
+"datasets": [
+{"name": "Synthetic Zipf", "params": {"s": 1.1}, "n_per_d": 100000, "description": "Sampled from Zipf distribution at each domain size.", "citation": ""},
+{"name": "NYC Yellow Taxi (Mar 2024)", "records": 3582628, "preprocess": "Normalize pickup times to [0,1] and bucket per d.", "citation": ""}
+],
+"implementation": {
+"env": "Python 3.10.4; NumPy 1.26.4; xxhash 3.4.1; AMD Ryzen 9 7950X; 64GB RAM",
+"trials": "100 repeats per condition; average reported",
+"metrics": [
+"Empirical MSE: (1/d)∑_i (\hat f_i − f_i)^2",
+"Top-k MSE on frequent values",
+"Aggregation time (server-side)"
+],
+"citation": ""
+},
+"key_results": [
+"Analytical MSE matches empirical closely across datasets. ",
+"RWS and SS achieve the best accuracy across d; GRR only competitive when k_opt=1 (very small d). ",
+"RUE/RLH improve frequent-value accuracy vs. OUE/OLH (notably for small k on Zipf). ",
+"RLH reduces OLH aggregation time drastically (≈90× at d=2^12 on Taxi). "
+]
+},
+"discussion_and_implications": {
+"bounds": "As d→∞, tight bound 4 e^ε / (n (e^ε − 1)^2) holds; lower bound for UE/LH and upper bound for SS/RWS. ",
+"practical_guidance": "Use RWS generally; RLH when O(d) comms is infeasible and you want LH-like comms with lower compute; GRR only for tiny d. ",
+"integration_notes": "RWS can replace Basic RAPPOR for categorical stats; for non-categorical, apply RWS to each Bloom-filter hash bucket with split ε; lower comms lets you use larger hashed domains to reduce collisions. "
+},
+"related_work": [
+"Hadamard Response: like SS with k=d/2; lower comms via Hadamard transform but accuracy suboptimal since k_opt=d/(e^ε+1). ",
+"Fast Local Hashing: constrains hash family to speed up at some accuracy cost vs. OLH. ",
+"Wheel Mechanism: continuous LH; inherits OLH tradeoffs. ",
+"Deployments: Google RAPPOR; PROCHLO ESA design; RWS usable in these pipelines for categorical stats. "
+],
+"ethics_and_open_science": {
+"ethics": "Work uses publicly available, anonymized TLC Taxi data; no personal data collection; improving accuracy at same ε does not weaken privacy guarantees. No risks identified by reviewers. ",
+"artifacts": {
+"language": "Python",
+"hardware_note": "Recommend ≥32GB RAM",
+"repos": [
+"GitHub: [https://github.com/SEUNICK/LDP_Frequency_Protocols](https://github.com/SEUNICK/LDP_Frequency_Protocols)",
+"Zenodo: [https://zenodo.org/records/14715748](https://zenodo.org/records/14715748)"
+],
+"files": [
+"fp/: source for all protocols",
+"yellow_tripdata_2024-03.parquet",
+"main.py (experiments w/ multiprocessing)",
+"runtime.py (aggregation runtime, single-process)",
+"draw*/ scripts for Figs. 2–7",
+"README.md"
+],
+"citation": ""
+}
+},
+"conclusion": "The analytical MSE framework enables precise cross-domain accuracy analysis and parameter selection for pure LDP frequency protocols. RUE and RLH significantly improve small-domain accuracy (and RLH slashes OLH aggregation cost), while RWS fuses LH and SS to achieve SS-level optimal accuracy with LH-level O(log n) communication and low computation, validated on synthetic and real datasets. ",
+"page_map_notes": {
+"equations (1–4)": "pp. 4–5 (estimator, variance, MSE). ",
+"protocol specs": "GRR/OUE/OLH/SS on pp. 5–6. ",
+"RUE/RLH derivations": "pp. 6–7. ",
+"RWS design & theorems": "p. 8 and derivations p. 8–9. ",
+"comparisons/guidelines": "pp. 9–10 (Table 2, Figure 2, guideline bullets). ",
+"experiments & figures": "pp. 10–15 (Figs. 3–7). ",
+"ethics/open science": "p. 16. "
+}
+}

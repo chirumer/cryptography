@@ -1,0 +1,78 @@
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Dataset</th>
+      <th>Year (data / release)</th>
+      <th>Approx. users / records</th>
+      <th>Item / category domain</th>
+      <th>Why it’s useful for kRR / OUE / OLH attacks</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>Zipf (synthetic)</td>
+      <td>N/A (synthetic; choose any year)</td>
+      <td>1,000,000 users</td>
+      <td>1,024 items (categories) drawn from a Zipf distribution</td>
+      <td>Canonical long-tailed frequency distribution; lets you precisely control skew and compare attack performance under idealized Zipfian popularity.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>SF Fire Department – “Alarms” subset</td>
+      <td>~2003–present data; commonly used subsets around 2016–2018</td>
+      <td>≈548,868 records (calls)</td>
+      <td>244 items (Unit IDs)</td>
+      <td>Real, moderately sized categorical domain with skewed counts per unit; good for testing how attacks perform when each “user” contributes a single categorical value (unit responding to an alarm).</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>IPUMS USA – U.S. Census / ACS 2017</td>
+      <td>2017 (data), released via IPUMS 2018+</td>
+      <td>≈389,894 user records</td>
+      <td>102 items (cities)</td>
+      <td>Representative demographic microdata with skewed city populations; good for frequency estimation & re-identification-style attacks on local DP when the sensitive attribute is location.</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Instacart Online Grocery Shopping Dataset 2017</td>
+      <td>2017 (data and release)</td>
+      <td>~200,000 users; ≈3.4M orders</td>
+      <td>≈49,000 grocery products</td>
+      <td>Large real-world item domain with very skewed product popularity (“staples” vs rare items), ideal for evaluating heavy-hitter discovery and poisoning/attack strategies under local DP.</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>MovieLens 25M</td>
+      <td>Ratings from 1995–2015, released 2019</td>
+      <td>≈162,000 users; 25M rating events</td>
+      <td>≈62,000 movies</td>
+      <td>Standard benchmark for user–item data; movie popularity is highly long-tailed, so it’s useful for frequency / heavy-hitter estimation and attack evaluation on categorical item IDs.</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>NYC 311 Service Requests (2010–present)</td>
+      <td>2010–present; dataset first published around 2013</td>
+      <td>Tens of millions of requests overall</td>
+      <td>Complaint categories (dozens to &gt;100 types)</td>
+      <td>Government open data with strong skew in complaint types; supports experiments on categorical frequency estimation and adversarial injection of synthetic “complaints.”</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>Kosarak click-stream data</td>
+      <td>Collected early 2000s; released mid-2000s</td>
+      <td>≈990,002 user sessions</td>
+      <td>41,270 items (clicked pages/ids)</td>
+      <td>Classic long-tail clickstream dataset; good for local DP on set-valued data (single-item simplification) and for attacks that exploit highly skewed page popularity.</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>AOL search query logs</td>
+      <td>Queries from Mar–May 2006; released 2006</td>
+      <td>≈650,000 users; ≈20M queries</td>
+      <td>Millions of distinct query strings (after cleaning)</td>
+      <td>Infamous real-world example where re-identification occurred; ideal for studying attacks on local DP frequency mechanisms over extremely high-dimensional, very long-tail categorical domains.</td>
+    </tr>
+  </tbody>
+</table>

@@ -1,0 +1,229 @@
+{
+  "source_url": "/mnt/data/kRR.pdf",
+  "metadata": {
+    "title": "Discrete Distribution Estimation under Local Privacy",
+    "authors": [
+      {
+        "name": "Peter Kairouz",
+        "email": "KAIROUZ2@ILLINOIS.EDU",
+        "affiliations": [
+          "Google, 1600 Amphitheatre Parkway, Mountain View, CA 94043",
+          "University of Illinois, Urbana-Champaign, 1308 W Main St, Urbana, IL 61801"
+        ]
+      },
+      {
+        "name": "Keith Bonawitz",
+        "email": "BONAWITZ@GOOGLE.COM",
+        "affiliations": ["Google, 1600 Amphitheatre Parkway, Mountain View, CA 94043"]
+      },
+      {
+        "name": "Daniel Ramage",
+        "email": "DRAMAGE@GOOGLE.COM",
+        "affiliations": ["Google, 1600 Amphitheatre Parkway, Mountain View, CA 94043"]
+      }
+    ],
+    "venue": "Proceedings of the 33rd International Conference on Machine Learning (ICML 2016), JMLR W&CP vol. 48",
+    "arxiv": "arXiv:1602.07387v3 [stat.ML] (15 Jun 2016)",
+    "pages": 27,
+    "keywords": [
+      "local differential privacy",
+      "distribution estimation",
+      "randomized response",
+      "k-ary randomized response (k-RR)",
+      "RAPPOR",
+      "hashed cohorts",
+      "open alphabets"
+    ]
+  },
+  "abstract": "The paper studies discrete distribution estimation under local differential privacy (LDP). It introduces hashed k-ary Randomized Response (k-RR) for open alphabets (O-RR), shows via theory and large-scale simulations when k-RR or RAPPOR are order-optimal, and provides decoding strategies (notably simplex projection) that improve utility across privacy regimes.",
+  "main_contributions": [
+    "For binary alphabets, Warner’s randomized response (W-RR) is proven globally optimal for all losses and all ε (Theorem 2).",
+    "For k-ary alphabets, k-RAPPOR is order-optimal in the high-privacy regime; k-RR is order-optimal in the low-privacy regime; each is strictly sub-optimal in the other’s regime (Section 4.1–4.3).",
+    "Projected (simplex) decoding outperforms ML and truncation/renormalization for skewed distributions across privacy levels and sample sizes (Section 4.4).",
+    "For open alphabets, O-RR (k-RR with hashing and cohorts) matches or exceeds O-RAPPOR utility across a wide privacy range; Bloom filters provide no benefit for distribution estimation (Section 5.1–5.3).",
+    "For closed alphabets, using minimal perfect hashing (permutations) with O-RR significantly improves utility—meeting or exceeding k-RR and RAPPOR in both high and low privacy regimes (Section 5.4)."
+  ],
+  "notation_and_setup": {
+    "private_source": "X over finite alphabet 𝒳={x1,...,xk}",
+    "mechanism": "Family of conditional distributions Q(y|x) represented as a k×ℓ row-stochastic matrix mapping X→Y",
+    "local_DP": "Q(E|x) ≤ e^ε Q(E|x') for all x,x' and measurable E⊂𝒴 (ε≥0)",
+    "task": "Estimate categorical distribution p∈Δ^{k-1} from privatized samples Y^n with Yi ~ pQ",
+    "risk": "Minimax risk r_{ℓ,ε,k,n} = inf_{Q∈D_ε} inf_{p̂} sup_{p} 𝔼[ℓ(p,p̂(Y^n))]"
+  },
+  "core_results": {
+    "Proposition_1_high_privacy_bounds": {
+      "statement": "For ε∈[0,1], there exist universal constants 0< c_l ≤ c_u < 5 such that r_{ℓ2^2,ε,k,n} and r_{ℓ1,ε,k,n} scale as O(k/(nε^2)) and O(k/√(nε^2)) respectively.",
+      "implication": "Effective sample size drops from n to ≈ nε^2/k in high privacy.",
+      "section_pages": "Section 2.2; page ~3",
+      "notes": "Formal inequalities given for ℓ2^2 and ℓ1 losses.",
+      "refs": ["Duchi et al. 2013b"]
+    },
+    "Theorem_2_W_RR_optimal": {
+      "mechanism": "W-RR with matrix Q_WRR = (1/(e^ε+1)) [[e^ε, 1],[1, e^ε]]",
+      "statement": "For all binary p, all losses ℓ, all ε≥0, W‑RR minimizes minimax risk.",
+      "proof_idea": "W‑RR dominates other LDP mechanisms via a stochastic post-processing (data processing inequality).",
+      "section_pages": "Section 3; pages ~3–4"
+    },
+    "k_RR_definition_and_estimators": {
+      "Q_KRR": "Q(y|x) = e^ε/(k−1+e^ε) if y=x; 1/(k−1+e^ε) if y≠x",
+      "output_mixture": "m = ((e^ε−1)/(e^ε + k − 1)) p + (1/(e^ε + k − 1))·1",
+      "empirical_estimator": "p̂ = ((e^ε + k − 1)/(e^ε − 1)) m̂ − (1/(e^ε − 1))·1",
+      "expected_errors": {
+        "L2": "𝔼||p̂−p||_2^2 = (1 − ∑ p_i^2)/n + ((k−1)/n)·[k + 2(e^ε−1)]/(e^ε−1)^2",
+        "L1_asympt": "≈ Σ_i sqrt( 2((e^ε−1)p_i + 1)((e^ε−1)(1 − p_i) + k − 1) / (π n (e^ε−1)^2) )"
+      },
+      "decoder_notes": "p̂ may leave simplex; best practice is projection onto simplex (Algorithm of Wang & Carreira‑Perpiñán 2013).",
+      "section_pages": "Section 4.1; pages ~4–5"
+    },
+    "k_RAPPOR_definition_and_estimators": {
+      "embedding": "Map symbol i to standard basis e_i ∈ {0,1}^k; then flip each bit independently",
+      "bit_flip_probability": "P(Y^{(j)} = X̃^{(j)}) = e^{ε/2}/(1+e^{ε/2}); P(flip)=1/(1+e^{ε/2})",
+      "marginal": "P(Y^{(j)}=1) = ((e^{ε/2} − 1)/(e^{ε/2} + 1)) p_j + 1/(e^{ε/2} + 1)",
+      "empirical_estimator": "p̂_j = ((e^{ε/2}+1)/(e^{ε/2}−1))·(T_j/n) − 1/(e^{ε/2}−1)",
+      "expected_errors": {
+        "L2": "𝔼||p̂−p||_2^2 = (1 − ∑ p_i^2)/n + (k e^{ε/2}) / ( n (e^{ε/2} − 1)^2 )",
+        "L1_asympt": "≈ Σ_i sqrt( 2((e^{ε/2}−1)p_i + 1)((e^{ε/2}−1)(1 − p_i) + 1) / (π n (e^{ε/2} − 1)^2) )"
+      },
+      "section_pages": "Section 4.2; pages ~5–6"
+    },
+    "regime_comparison_and_order_optimality": {
+      "k_RR": "Not optimal for small ε; becomes order‑optimal when ε≈ln k (effective n ≈ n/4).",
+      "k_RAPPOR": "Order‑optimal for high privacy (ε small) but strictly sub‑optimal for moderate‑to‑low privacy (e.g., for ε≈ln k, effective n drops to n/√k).",
+      "formal_comparison": "For ML under ℓ2, 𝔼||p̂_KRR−p||_2^2 ≤ 𝔼||p̂_RAPPOR−p||_2^2 when ε ≥ ln(k/2) (main text), with a slightly stronger bound ε ≥ ln k shown in the supplementary proof (both assert k‑RR wins in that regime).",
+      "section_pages": "Section 4.3; page ~5"
+    }
+  },
+  "algorithms_and_decoding": {
+    "decoders_considered": [
+      "Empirical (direct inverter)",
+      "Normalized/truncated (clip negatives, renormalize)",
+      "Projected (simplex projection; best for skewed distributions)",
+      "Maximum likelihood (specific forms for k-RR and k-RAPPOR)"
+    ],
+    "ML_for_k_RR": {
+      "solution": "p̂_i = max(0, T_i/λ − 1/(e^ε−1)) with λ chosen so Σ_i p̂_i = 1",
+      "complexity": "O(k log k) using water-filling (Boyd & Vandenberghe)",
+      "where": "Supplement F.1–F.2"
+    },
+    "ML_for_k_RAPPOR": {
+      "objective": "maximize Σ_j (n−T_j) log((1−δ) − (1−2δ)p_j) + T_j log((1−2δ)p_j + δ), δ=1/(e^{ε/2}+1)",
+      "note": "Convex program in k variables (Supplement F.3–F.4)"
+    },
+    "decoder_choice_finding": "Projected (simplex) decoding consistently best for skewed distributions; normalized best for flat Dirichlet (Section 4.4)."
+  },
+  "open_alphabets_O_RR_and_O_RAPPOR": {
+    "O_RR_encoding": {
+      "cohorts": "Each user assigned cohort c∈{1,...,C} uniformly",
+      "hash": "C independent hash functions HASH_c(·) mod k project S→{0,...,k−1}",
+      "mechanism": "Q_ORR(y,c|s) = [1/(C(e^ε+k−1))]·(e^ε if HASH_c^{(k)}(s)=y; else 1)"
+    },
+    "O_RR_decoding": {
+      "linear_system": "Interpret mechanism as kC×|S| matrix Q_ORR = (1/C)·(1/(e^ε+k−1))·(I + (e^ε−1)H) where H(y,c|s)=1{HASH_c^{(k)}(s)=y}",
+      "empirical_estimator": "p̂_ORR H = (1/(e^ε−1))·(C(e^ε+k−1) m̂ − 1)",
+      "postproc": "Project p̂ to simplex"
+    },
+    "O_RAPPOR": {
+      "embedding": "Use h-hash Bloom filter per cohort (C cohorts) before applying k‑RAPPOR",
+      "finding": "For distribution estimation, optimal h≈1; Bloom filters bring no benefit beyond simple hashing",
+      "decoder": "Least‑squares (Lasso step and Bonferroni filtering not used here)"
+    },
+    "conditions_for_accurate_decoding_under_k_RR": {
+      "distinguishability": "Probability a string is distinguishable among S strings is ((k^C−1)/k^C)^{S−1}",
+      "recoverable_mass": "Expected recoverable probability mass ≥ P_t requires k^C ≥ (1 − P_t^{1/(S−1)})^{-1}",
+      "well_constrained_system": "Need k^C ≥ S equations to avoid under‑constrained linear system",
+      "variance_condition": "n must be large enough for small variance in p̂ (qualitative guidance)"
+    },
+    "empirical_findings": [
+      "O‑RR matches O‑RAPPOR at very low and high privacy and exceeds it at midrange ε.",
+      "For O‑RR: optimal k grows with ε; increasing C improves low‑to‑mid privacy; C=1 underperforms.",
+      "For O‑RAPPOR: performance improves with larger k (approaching asymptote near k=4096); C≥2 suffices; h=1 is optimal."
+    ]
+  },
+  "simulation_setup_and_results": {
+    "distributions": [
+      "Binomial with p ∈ {0.1,0.2,0.3,0.4,0.5}",
+      "Zipf with parameter ∈ {1,2,3,4,5}",
+      "Multinomial from symmetric Dirichlet(1⃗)",
+      "Geometric with mean k/5 (k‑ary) or |S|/5 (open/closed)"
+    ],
+    "evaluation_metric": "ℓ1 distance between decoded distribution and ground‑truth sample distribution",
+    "decoding_takeaways": [
+      "Projected decoder best for skewed distributions across k and ε; normalized best for flat Dirichlet.",
+      "k‑RAPPOR beats k‑RR when k is large and ε small; k‑RR slightly better whenever k < e^ε (empirical ℓ1 complementing theory in ℓ2).",
+      "As n increases, k‑RR’s advantage in low privacy shrinks."
+    ],
+    "parameter_search": "Grid‑search over k ∈ [2,4,8,...,4096], C ∈ [1,2,4,...,1024], h ∈ [1,2,4,8,16] (extended up to k=16384, n up to 1e8 in supplementary).",
+    "n_values": ["100", "3e4", "1e6", "1e8 (supplementary)"]
+  },
+  "figures": [
+    {
+      "figure": "Figure 1",
+      "page": 7,
+      "topic": "Projected decoder improvement for k‑RR and k‑RAPPOR (ℓ1)",
+      "takeaway": "Simplex projection outperforms ML/normalized decoders across k, ε for skewed data."
+    },
+    {
+      "figure": "Figure 2",
+      "page": 7,
+      "topic": "Best k‑RR vs best k‑RAPPOR decoders (ℓ1) for small (100) and large (30k) n",
+      "takeaway": "k‑RAPPOR wins for large k & low ε; k‑RR wins whenever k < e^ε."
+    },
+    {
+      "figure": "Figure 3 (a,b)",
+      "page": 7,
+      "topic": "ℓ1 loss of O‑RR vs O‑RAPPOR (open vs closed alphabets), n=10^6",
+      "takeaway": "O‑RR ≥ O‑RAPPOR in midrange; benefits strongly in closed alphabets with perfect hashing."
+    },
+    {
+      "figure": "Figure 4",
+      "page": 18,
+      "topic": "Geometric input distribution used in experiments"
+    },
+    {
+      "figure": "Figures 5–6",
+      "pages": "18–19",
+      "topic": "ℓ2 analogs of projected‑decoder improvements and k‑RR vs k‑RAPPOR",
+      "takeaway": "Patterns mirror ℓ1 results."
+    },
+    {
+      "figure": "Figures 7–16",
+      "pages": "20–27",
+      "topic": "Open/closed alphabet losses vs ε; parameter sweeps over k, C, h; privacy attainable vs target ℓ1 at n",
+      "takeaway": "C≥2 sufficient for O‑RAPPOR; h=1; O‑RR benefits from larger C at mid‑privacy; privacy‑utility trade‑offs quantified for S=256 and 4096; results shown for n=10^6 and 10^8."
+    }
+  ],
+  "equations_by_label": [
+    {"id": "(1)", "text": "Q(E|x) ≤ e^{ε} Q(E|x')  for all x,x', E⊂𝒴  (Local DP)"},
+    {"id": "(2)", "text": "r_{ℓ,ε,k,n} = inf_{Q∈D_ε} inf_{p̂} sup_{p} 𝔼[ℓ(p,p̂)]"},
+    {"id": "(3)", "text": "Q_WRR = (1/(e^{ε}+1)) [[e^{ε}, 1], [1, e^{ε}]]"},
+    {"id": "(4)", "text": "Q_KRR(y|x) = e^{ε}/(k−1+e^{ε}) if y=x; 1/(k−1+e^{ε}) otherwise"},
+    {"id": "(5)", "text": "m = ((e^{ε}−1)/(e^{ε}+k−1)) p + (1/(e^{ε}+k−1))·1"},
+    {"id": "(6)", "text": "p̂ = ((e^{ε}+k−1)/(e^{ε}−1)) m̂ − (1/(e^{ε}−1))·1"},
+    {"id": "(7)", "text": "Q_KRR^{-1}(y|x)= (e^{ε}+k−2)/(e^{ε}−1) if y=x;  −1/(e^{ε}−1) otherwise"},
+    {"id": "(10)", "text": "P(Y^{(j)}=1) = ((e^{ε/2}−1)/(e^{ε/2}+1)) p_j + 1/(e^{ε/2}+1)"},
+    {"id": "(11)", "text": "p̂_j = ((e^{ε/2}+1)/(e^{ε/2}−1))·(T_j/n) − 1/(e^{ε/2}−1)"},
+    {"id": "(14)", "text": "For ε ≥ ln(k/2): 𝔼||p̂_KRR−p||_2^2 ≤ 𝔼||p̂_RAPPOR−p||_2^2 (ML)"},
+    {"id": "(15)", "text": "Q_ORR(y,c|s) = 1/[C(e^{ε}+k−1)]·(e^{ε} if HASH_c^{(k)}(s)=y; else 1)"},
+    {"id": "(16)", "text": "Q_ORR = (1/C)·(1/(e^{ε}+k−1))·(I + (e^{ε}−1)H)"},
+    {"id": "(17)", "text": "H(y,c|s) = 1{HASH_c^{(k)}(s)=y}"},
+    {"id": "(18)", "text": "p̂_ORR H = (1/(e^{ε}−1))·(C(e^{ε}+k−1) m̂ − 1)"},
+    {"id": "(28–29)", "text": "ML for k‑RR: p̂_i = max(0, T_i/λ − 1/(e^{ε}−1)), with Σ_i p̂_i = 1; λ via water‑filling"},
+    {"id": "(30–32)", "text": "Derivation for ML under k‑RR: show Σ_j Q_KRR(Y_i|X=j) p_j = ((e^{ε}−1) p_{Y_i} + 1)/(e^{ε}+k−1)"},
+    {"id": "(34)", "text": "Expected number of distinguishable strings among S: S·((k^C − 1)/k^C)^{S−1}; probability a given string is distinguishable: ((k^C − 1)/k^C)^{S−1}"}
+  ],
+  "practical_guidelines_from_paper": [
+    "Use projected (simplex) decoding for skewed data.",
+    "Choose mechanism by privacy regime: k‑RAPPOR for high privacy; k‑RR (or O‑RR) for moderate‑to‑low privacy.",
+    "For open alphabets, use cohorts (C≥2) and hashing; Bloom filters (h>1) are unnecessary for distribution estimation.",
+    "For closed alphabets, prefer O‑RR with minimal perfect hashing (permutations) to reduce collisions.",
+    "Rule of thumb: k‑RR tends to be better when k < e^{ε} (empirical ℓ1); otherwise RAPPOR may be better at small ε."
+  ],
+  "conclusion": "Cohort‑style hashing combined with k‑RR yields practical, state‑of‑the‑art utility for LDP distribution estimation, with regime‑dependent optimality between k‑RR and RAPPOR and strong performance of O‑RR in open and closed alphabets.",
+  "references_selected": [
+    {"authors": "Duchi, Wainwright, Jordan", "year": 2013, "title": "Local privacy and minimax bounds", "note": "high privacy rates"},
+    {"authors": "Erlingsson, Pihur, Korolova", "year": 2014, "title": "RAPPOR", "note": "open-source LDP reporting"},
+    {"authors": "Kairouz, Oh, Viswanath", "year": 2014, "title": "Extremal mechanisms for LDP", "note": "k‑RR low‑privacy optimality"},
+    {"authors": "Wang & Carreira‑Perpiñán", "year": 2013, "title": "Projection onto the probability simplex", "note": "decoder projection"},
+    {"authors": "Warner", "year": 1965, "title": "Randomized response", "note": "binary LDP classic"}
+  ]
+}

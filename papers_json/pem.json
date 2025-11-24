@@ -1,0 +1,282 @@
+{
+"provenance": "This structured JSON summarizes and organizes the full content of the uploaded paper '/mnt/data/pem.pdf' for use as LLM context, preserving definitions, formulas, algorithms, figures, experiments, and conclusions from the original source. See the source PDF for exact wording and diagrams. ",
+"source_file": "/mnt/data/pem.pdf",
+"metadata": {
+"title": "Locally Differentially Private Heavy Hitter Identification",
+"arxiv_id_and_version": "arXiv:1708.06674v1",
+"date": "2017-08-22",
+"authors": [
+{ "name": "Tianhao Wang", "affiliation": "Purdue University", "email": "[tianhaowang@purdue.edu](mailto:tianhaowang@purdue.edu)" },
+{ "name": "Ninghui Li", "affiliation": "Purdue University", "email": "[ninghui@cs.purdue.edu](mailto:ninghui@cs.purdue.edu)" },
+{ "name": "Somesh Jha", "affiliation": "University of Wisconsin-Madison", "email": "[jha@cs.wisc.edu](mailto:jha@cs.wisc.edu)" }
+],
+"abstract": "The paper proposes a protocol for identifying heavy hitters under Local Differential Privacy (LDP) called the Prefix Extending Method (PEM). PEM partitions users into groups and has each group report increasingly longer prefixes of their value, enabling efficient candidate identification when the domain is large. The authors analyze parameter choices (notably the prefix extension length η), derive design principles for LDP protocols, and show empirically on synthetic and real datasets that PEM substantially outperforms prior methods such as SPM and MCM. ",
+"contributions": [
+"A new LDP heavy-hitter identification protocol (PEM) with analysis and optimization. ",
+"Two design principles for high-utility LDP protocols (divide users, minimize groups). ",
+"Empirical validation on synthetic and real-world datasets showing PEM’s advantage over SPM and MCM. "
+],
+"roadmap": "Section II provides LDP background; Section III defines the problem and prior methods; Section IV introduces PEM and analyses; Section V validates the analysis; Section VI evaluates; Section VII reviews related work; Section VIII concludes. "
+},
+"key_notation_and_parameters": {
+"n": "Number of users. Estimation variance under LDP scales linearly with n; standard deviation scales with sqrt(n). ",
+"m": "Bit-length of each value (e.g., m=64 or m=128 in examples). ",
+"D": "Domain of values; often represented as {0,1}^m. ",
+"d": "Domain size |D|; large d challenges frequency oracle approaches. ",
+"ε": "LDP privacy budget; e^ε appears in probabilities/variance. ",
+"π": "Client-side randomizer; π(v) is the perturbed report. ",
+"Γ": "Aggregator-side estimator/oracle. ",
+"p,q": "Protocol-specific probabilities used in GRR/OLH estimators. ",
+"H": "Hash function family used in OLH (maps D→{1..d'}). ",
+"d'": "Reduced domain size in OLH; optimal d' ≈ e^ε+1. ",
+"k": "Number of heavy hitters to identify in top‑k formulation. ",
+"γ, η": "PEM parameters; γ is the initial prefix size; η is the per‑round extension length. ",
+"g": "Number of PEM groups/rounds, g = ceil((m−γ)/η). "
+},
+"definitions": [
+{
+"id": "Def1_LDP",
+"title": "Local Differential Privacy",
+"statement": "Algorithm π satisfies ε-LDP if for any v1,v2∈D and any T⊆Range(π): Pr[π(v1)∈T] ≤ e^ε · Pr[π(v2)∈T]. "
+},
+{
+"id": "Def2_TopK",
+"title": "Top‑k Heavy Hitter",
+"statement": "Given multi-set {v1,…,vn}∈D^n, x∈D is a top‑k heavy hitter if its frequency fx = |{j∈[n] : vj=x}|/n is among the k highest. "
+}
+],
+"protocols": [
+{
+"name": "Generalized Randomized Response (GRR)",
+"purpose": "Frequency oracle protocol for any v∈D.",
+"client_randomizer": "Report true v with probability p = e^ε / (e^ε + d − 1); otherwise uniformly one of the other d−1 values (probability q=1/(e^ε + d − 1)). For a 1‑bit value (d=2), keep with prob e^ε/(e^ε+1) and flip with 1/(e^ε+1). ",
+"estimator": "Count reports Iv of v and output (Iv − n·q)/(p − q). Unbiased; variance: ((d−2+e^ε)/(e^ε − 1)^2) · n. (Eq. 1) ",
+"notes": "Accuracy deteriorates quickly with d. "
+},
+{
+"name": "Optimized Local Hashing (OLH)",
+"purpose": "Frequency oracle optimized for large domains.",
+"client_randomizer": "Sample hash H from family mapping D→{1..d'}, with d'=⌈e^ε+1⌉; report (H, y) where y = GRR(H(v)) with p = e^ε/(e^ε + d' − 1). ",
+"estimator": "For v, compute Iv = |{j : Hj(v)=yj}| and output (Iv − n/d') / (p − 1/d'). (Eq. 2) Variance: (4·e^ε)/(e^ε − 1)^2 · n. (Eq. 3) ",
+"notes": "Each query is O(n); estimates independent across values. "
+},
+{
+"name": "Strawman Segmentation (baseline)",
+"idea": "Split v into g equal segments (length s=m/g); each user reports one segment; aggregator enumerates all segment strings and combines frequent segment sets via Cartesian product to form candidates; then queries full value frequencies. Candidate size can blow up (≈k^g). "
+},
+{
+"name": "Segment Pair Method (SPM)",
+"idea": "Each user reports two randomly chosen segments (plus the whole value in original RAPPOR setting), dividing privacy budget; aggregator filters by frequent segment pairs before final frequency testing. Limited users per pair when g is large. "
+},
+{
+"name": "Multiple Channel Method (MCM)",
+"idea": "Hash v into one of h channels; within each channel, identify a candidate by estimating bits (users report a single bit position ℓ). Requires accurate per‑bit majority; few users per bit when m is large; multiplies overhead by h. "
+},
+{
+"name": "Prefix Extending Method (PEM)",
+"parameters": { "gamma": "γ", "extension": "η", "rounds": "g = ceil((m−γ)/η)" },
+"user_side": "Randomly assigned to round i∈{1..g}; report (i, π(v[0 : γ+i·η])). ",
+"aggregator_side": [
+"Round 1: identify frequent prefixes of length γ+η over D1={0,1}^{γ+η} → C1.",
+"Round i>1: construct Di = C_{i−1} × {0,1}^η; identify frequent prefixes in Di → Ci.",
+"Final round g: Cg is the set of candidate heavy hitters; query their frequencies. "
+],
+"intuition_and_tradeoffs": "Larger η → fewer rounds (larger groups, less noise) but more candidates per round; analysis shows utility benefits from larger η subject to query limits. "
+}
+],
+"analysis_and_metrics": {
+"importance_of_group_size": "Because variance scales with n, LDP is useful when group sizes are large; example: to detect a value with 0.1% frequency under ε with e^ε=10, OLH’s std ≈0.7√n; requiring 3σ separation yields n≥4,410,000. ",
+"metrics": [
+{
+"name": "F1",
+"definition": "Harmonic mean of precision and recall comparing identified set Cg to true top‑k CT. "
+},
+{
+"name": "NCR (Normalized Cumulative Rank)",
+"definition": "Normalized cumulative gain where heavier weight is given to higher-ranked ground-truth items: scores k..1 for ranks 1..k and normalized by k(k+1)/2. "
+},
+{
+"name": "Unified Utility Score",
+"formula": "Sum over j=1..k of weights wj times the product over rounds i of identification probability P_iden_j[i]. (Eq. 4) "
+}
+],
+"assumptions_for_optimization": "Set γ=⌈log2 k⌉; per round domain |Di|=2^{γ+η}=k·2^η; fix |Ci|=k; assume n[i]=n/g; choose η to maximize utility under a query budget. ",
+"approx_identification_probability": {
+"setup": "Use OLH support counts Ij and normal approximation with mean μj[i]=n[i]·pj and variance σ_j^2[i]=n[i]·pj·(1−pj), where pj = p·f_j + q·(1−f_j). Set threshold Tk[i] so expected number of zero-frequency distractors above T equals k; derive P_iden_j[i] = Φ((μj[i] − Tk−j[i]) / σj[i]). (Eq. 5; details include Φ and Φ^{-1} use). ",
+"takeaway": "Favors fewer rounds (larger groups) and balanced allocation when rounds>1. "
+},
+"design_principles_and_observations": [
+"Principle 1: Divide the user population (by question/round), not the privacy budget per user. ",
+"Observation 1: Within a fixed query budget, maximize identification probability by minimizing the number of groups (i.e., use the largest feasible η). ",
+"Principle 2: Minimize the number of groups—the larger each group, the better the accuracy. ",
+"Observation 2: With two of {η[i], n[i]} constrained to be balanced, the utility is maximized when the other is balanced as well (e.g., n[i]=n/g and η[i]=m/g). "
+]
+},
+"validation_of_analysis": {
+"experiment_setup": "Synthetic Zipf-like data; repeated runs; compare analytical predictions vs empirical results for identification probabilities and utility metrics. ",
+"findings": [
+"Identification probability increases with n and ε, and decreases with m; analytical curves closely match empirical points. (Figure 2) ",
+"F1/NCR under varying number of rounds g, first-round η[1], and first-round n[1] confirm observations: fewer rounds help; balanced allocations maximize utility. (Figure 3) ",
+"Optimal-configuration studies across n, m, ε confirm analysis consistency (Figure 4). "
+]
+},
+"evaluation": {
+"datasets": [
+{
+"name": "Frequent URL (web traffic)",
+"construction": "1.2M URLs from Quantcast-like distribution of ~80k websites, restricted to 20 bytes; 27k unique URLs; 5‑minute window. Motivation: discover popular homepages without a priori dictionary. "
+},
+{
+"name": "Query Trends (AOL 2006)",
+"construction": "Assume each user contributes one query (first), limited to 6 bytes; ≈0.5M queries, ≈0.2M unique. Models frequently changing heavy hitters where historical dictionaries are unreliable. "
+},
+{
+"name": "Synthetic (Exponential)",
+"construction": "n=1,000,000; values are 64-bit random strings; frequencies follow exponential distribution with scale 0.05. "
+}
+],
+"competitor_protocols_and_modifications": [
+"SPM and MCM reimplemented with OLH as the LDP primitive (replacing RAPPOR and BLH). ",
+"SPM segment length pushed as high as query budget permits (fewer groups). ",
+"MCM channels reduced to ≈k^{1.5} (instead of n^{1.5}) given limited practical budgets. ",
+"Final selection by top‑k (instead of threshold) for consistent comparison; SPM segment/segment‑pair lists capped to k candidates per segment. "
+],
+"headline_results": [
+"Across URL, AOL, and Synthetic datasets, PEM achieves the highest F1 and NCR for a wide range of ε; gains grow with larger ε. (Figure 5) ",
+"As k increases, all methods’ F1/NCR generally drop; PEM remains best and near‑perfect on synthetic up to k≈30. (Figure 6) ",
+"Threshold‑based evaluation shows PEM outperforming SPM/MCM across ε and θ; performance especially strong around ε≈2. (Figure 7) ",
+"Partitioning users (rather than privacy budgets) sharply improves baselines—e.g., modified MCM F1 rises from <0.2 to ≈0.8 at ε=1.2. (Figure 8a) ",
+"Increasing η improves PEM utility within query limits. (Figure 8b) ",
+"Estimation variance for successfully identified items: PEM uses only the last group (~1/6 users in the example) yet matches MCM’s accuracy and exceeds SPM’s, consistent with OLH variance (Eq. 3). (Figure 9) "
+]
+},
+"figures": [
+{
+"figure": "Figure 1",
+"page": 5,
+"caption": "How candidates are generated by the four methods; value length 64 bits split into 4×16‑bit segments.",
+"panels": [
+"(a) Strawman: 4 groups, one segment each.",
+"(b) SPM: 6 groups, one pair of segments each.",
+"(c) MCM: 64 groups, one bit across multiple channels.",
+"(d) PEM: 4 groups, each reports a prefix."
+],
+"note": "Illustrates why PEM requires fewer groups when m is large. "
+},
+{ "figure": "Figure 2", "topic": "Identification probability vs. true frequency; panels vary n, m, ε; empirical points align with analysis.", "page_hint": 9, "citation": "" },
+{ "figure": "Figure 3", "topic": "F1/NCR under different PEM configurations (vary g, η[1], n[1]); optimal at balanced allocations and fewer rounds.", "page_hint": 9, "citation": "" },
+{ "figure": "Figure 4", "topic": "F1/NCR from optimal configuration while varying n, m, ε.", "page_hint": 9, "citation": "" },
+{ "figure": "Figure 5", "topic": "F1 and NCR vs ε for URL, AOL, Synthetic; PEM dominates.", "page_hint": 12, "citation": "" },
+{ "figure": "Figure 6", "topic": "F1 and NCR vs k for URL, AOL, Synthetic; PEM best across k.", "page_hint": 12, "citation": "" },
+{ "figure": "Figure 7", "topic": "Threshold version: F1 vs ε (fixed θ), F1 vs θ (fixed ε), and distribution sensitivity.", "page_hint": 13, "citation": "" },
+{ "figure": "Figure 8", "topic": "Effects of partitioning users, η, and distribution assumption on F1.", "page_hint": 13, "citation": "" },
+{ "figure": "Figure 9", "topic": "Estimation variance vs ε for PEM/MCM/SPM on synthetic.", "page_hint": 13, "citation": "" }
+],
+"equations": [
+{ "tag": "(1)", "name": "GRR variance", "latex": "Var_{GRR}(\hat{f}(v)) = \frac{d - 2 + e^{\epsilon}}{(e^{\epsilon} - 1)^2} \cdot n", "context": "Variance of GRR frequency estimator; grows with domain size d. " },
+{ "tag": "(2)", "name": "OLH estimator", "latex": "\hat{f}(v) = \frac{I_v - n/d'}{p - 1/d'}", "context": "Estimator using OLH support count I_v. " },
+{ "tag": "(3)", "name": "OLH variance", "latex": "Var_{OLH}(\hat{f}(v)) = \frac{4 e^{\epsilon}}{(e^{\epsilon} - 1)^2} \cdot n", "context": "Variance independent of d; improves over GRR for large d. " },
+{ "tag": "(4)", "name": "Unified utility score", "latex": "U = \sum_{j=1}^{k} w_j \cdot \prod_{i=1}^{g} P^{[i]}*{\text{iden}, j}", "context": "Aggregates per‑round identification probabilities with metric‑specific weights. " },
+{
+"tag": "(5)",
+"name": "Per‑round identification probability",
+"latex": "P^{[i]}*{\text{iden}, j} = \Phi\!\left(\frac{\mu_j[i] - T_{k-j}[i]}{\sigma_j[i]}\right) = \Phi\!\left(\frac{\mu_j[i] + \Phi^{-1}\!(\tfrac{k-j}{N[i]})\,\sigma_0[i] - \mu_0[i]}{\sigma_j[i]}\right)",
+"context": "Normal approximation for I_j with threshold chosen so expected distractors above it equals k−j. "
+}
+],
+"section_summaries": [
+{
+"id": "I",
+"title": "Introduction",
+"essentials": [
+"Motivation: heavy-hitter discovery under LDP when |D| is large is computationally hard if naively estimating every value. ",
+"PEM idea: iteratively grow frequent prefixes across user groups; larger η (fewer groups) generally improves utility within query budget. ",
+"Design principles previewed (divide users; minimize groups). "
+]
+},
+{
+"id": "II",
+"title": "Background",
+"subsections": [
+{ "title": "Local Differential Privacy (definition and intuition). " },
+{
+"title": "Frequency oracles",
+"content": "GRR and OLH derivations; OLH optimal reduced domain; variance expressions; importance of large n. "
+},
+{
+"title": "Why group size matters",
+"content": "Example showing n≥4.41M needed to detect 0.1% frequency at 3σ when e^ε=10 under OLH. "
+}
+]
+},
+{
+"id": "III",
+"title": "Problem definition and existing methods",
+"subsections": [
+{ "title": "Top‑k heavy hitter definition. " },
+{ "title": "Strawman segmentation and its candidate explosion. " },
+{ "title": "SPM and its limitations (few users per pair when g large). " },
+{ "title": "MCM and its limitations (per‑bit sparsity; multi‑channel overhead). " }
+]
+},
+{
+"id": "IV",
+"title": "Proposed Solution (PEM)",
+"subsections": [
+{ "title": "Algorithm definition and workflow across rounds. " },
+{
+"title": "Utility analysis",
+"content": "F1, NCR, and unified utility; normal approximation; role of η and query limits; simplified assumptions (n[i]=n/g, |Ci|=k, γ≈log2 k). "
+},
+{
+"title": "Instantiation and parameter guidance",
+"content": "Choose the largest η allowed by the total query budget; balanced n[i] and η[i] across rounds; adjust |Ci| if k is extreme. "
+},
+{
+"title": "Design principles",
+"bullets": [
+"Divide users, not budgets (Principle 1). ",
+"Minimize groups (Principle 2). "
+]
+}
+]
+},
+{
+"id": "V",
+"title": "Validation of analysis",
+"content": "Empirical results on synthetic Zipf data match analytical formulas for identification probability and utility; confirm Observations 1–2 (Figures 2–4). "
+},
+{
+"id": "VI",
+"title": "Evaluation",
+"content": "PEM vs MCM/SPM on three datasets; methodology changes (OLH primitive, group counts, top‑k selection); PEM consistently best across ε and k; benefits from partitioning users and larger η; estimation variance comparisons (Figures 5–9). "
+},
+{
+"id": "VII",
+"title": "Related work",
+"content": "Positions PEM against RAPPOR, BLH, OLH/OUE, and heavy‑hitter protocols under centralized and local DP; discusses simultaneous work proposing incremental‑bit approach and √n channels. "
+},
+{
+"id": "VIII",
+"title": "Conclusions and Future Work",
+"content": "PEM solves LDP heavy hitter discovery with analyzed utility and validated performance; open problems include distribution‑agnostic performance and unbounded domains. "
+},
+{
+"id": "Appendix",
+"title": "Proof of Proposition 1",
+"note": "Formal proof that partitioning users across questions beats splitting privacy budgets per user under the model assumptions. "
+}
+],
+"practical_guidelines_from_paper": [
+"Prefer fewest possible PEM rounds by choosing the largest η within your query/compute budget. ",
+"Allocate users evenly across rounds when multiple rounds are unavoidable; avoid over‑favoring the final round. ",
+"If k is large and accuracy is unattainable, reduce |Ci| or the effective k to improve identification probability. ",
+"Use OLH as the frequency oracle for large domains. "
+],
+"reference_section_notes": {
+"scope": "The paper cites prior work spanning DP foundations (Dwork et al.), frequency estimation mechanisms (RAPPOR, BLH, OLH/OUE), and heavy‑hitter protocols (SPM, MCM), plus systems and applications (Uber’s SQL DP, Apple/Google deployments). ",
+"examples_from_list": [
+"[1] Wired article on Apple's differential privacy deployment; [2] Quantcast Top Sites; [6] Bassily & Smith STOC’15; [30] Wang et al., USENIX Security 2017; [31] Warner 1965 randomized response. "
+]
+}
+}

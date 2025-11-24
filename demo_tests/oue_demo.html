@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LDP Poisoning Attacks Demo (RPA, RIA, MGA)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-alt: #0b1020;
+      --card: #111827;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.08);
+      --accent-strong: rgba(56, 189, 248, 0.5);
+      --danger: #f97373;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2933;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.45);
+      --shadow-subtle: 0 10px 20px rgba(0, 0, 0, 0.35);
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 40%, #000 100%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 1.5rem clamp(1.5rem, 4vw, 3.25rem) 0.75rem;
+    }
+
+    .title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    h1 span.logo-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #38bdf8 0, #0f172a 60%);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+      font-size: 17px;
+    }
+
+    .subtitle {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      max-width: 650px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      padding: 0.18rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.75);
+    }
+
+    main {
+      flex: 1;
+      padding: 0.5rem clamp(1.5rem, 4vw, 3.25rem) 2rem;
+      display: grid;
+      grid-template-columns: minmax(0, 360px) minmax(0, 1.7fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top, rgba(148, 163, 184, 0.05) 0, var(--card) 40%);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(15, 23, 42, 0.85);
+      box-shadow: var(--shadow-soft);
+      padding: 1.1rem 1.2rem 1.2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 55%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #e5e7ff;
+    }
+
+    .panel h3 {
+      margin-top: 0.75rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+      color: #e5e7ff;
+    }
+
+    .panel p {
+      margin: 0.1rem 0 0.6rem;
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      color: #cbd5f5;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .field label span.help {
+      color: var(--muted);
+      font-weight: normal;
+    }
+
+    .field input,
+    .field select {
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 999px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      padding: 0.45rem 0.7rem;
+      font-size: 0.84rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.55);
+      background: rgba(15, 23, 42, 0.97);
+    }
+
+    .field input[type="range"] {
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      border: none;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .range-row span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      min-width: 2.8rem;
+      text-align: right;
+    }
+
+    .attack-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 64, 175, 0.9));
+      color: var(--text);
+      font-size: 0.84rem;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: var(--shadow-subtle);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.18s ease,
+        border-color 0.18s ease;
+      white-space: nowrap;
+    }
+
+    button span.icon {
+      font-size: 1rem;
+    }
+
+    button.primary {
+      border-color: rgba(56, 189, 248, 0.7);
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.9), rgba(8, 145, 178, 0.9));
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.7);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .helper-text {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.6rem;
+    }
+
+    .note {
+      border-radius: var(--radius-md);
+      padding: 0.45rem 0.55rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.8));
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    .note strong {
+      color: #e5e7ff;
+    }
+
+    .attack-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+
+    .attack-card {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), rgba(15, 23, 42, 0.95));
+      padding: 0.6rem 0.6rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .attack-card h4 {
+      margin: 0 0 0.2rem;
+      font-size: 0.86rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      border-radius: 999px;
+      padding: 0.05rem 0.45rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--muted);
+    }
+
+    .attack-card ul {
+      margin: 0.15rem 0 0;
+      padding-left: 1em;
+    }
+
+    .attack-card li {
+      margin: 0.1rem 0;
+    }
+
+    .results-panel {
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(31, 41, 55, 0.95);
+      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.04), rgba(15, 23, 42, 0.98));
+      padding: 0.8rem 0.85rem;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .results-panel h3 {
+      margin: 0 0 0.3rem;
+      font-size: 0.96rem;
+      color: #e5e7ff;
+    }
+
+    .results-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+    }
+
+    .tag-dot.true {
+      background: #22c55e;
+    }
+
+    .tag-dot.base {
+      background: #a3e635;
+    }
+
+    .tag-dot.attack {
+      background: var(--accent);
+    }
+
+    .tag-dot.target {
+      background: var(--danger);
+    }
+
+    .table-wrapper {
+      margin-top: 0.5rem;
+      max-height: 330px;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.9), #020617);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      min-width: 520px;
+    }
+
+    th,
+    td {
+      padding: 0.35rem 0.55rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: rgba(15, 23, 42, 0.98);
+      font-weight: 500;
+      color: #e5e7ff;
+      border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+      z-index: 1;
+    }
+
+    tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    tr:nth-child(odd) {
+      background: rgba(17, 24, 39, 0.95);
+    }
+
+    td {
+      color: #e5e7eb;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.8);
+    }
+
+    td.item-col {
+      text-align: left;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.78rem;
+    }
+
+    .target-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      border-radius: 999px;
+      padding: 0.08rem 0.45rem;
+      font-size: 0.7rem;
+      background: rgba(248, 113, 113, 0.18);
+      border: 1px solid rgba(248, 113, 113, 0.7);
+      color: #fecaca;
+    }
+
+    .gain-positive {
+      color: #bef264;
+    }
+
+    .gain-negative {
+      color: #fda4af;
+    }
+
+    .bar-cell {
+      width: 120px;
+    }
+
+    .bar-track {
+      position: relative;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      overflow: hidden;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+    }
+
+    .bar-true,
+    .bar-base,
+    .bar-attack {
+      position: absolute;
+      inset: 0;
+      transform-origin: left center;
+    }
+
+    .bar-true {
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.85), rgba(22, 163, 74, 0.85));
+      opacity: 0.6;
+    }
+
+    .bar-base {
+      background: linear-gradient(90deg, rgba(190, 242, 100, 0.9), rgba(132, 204, 22, 0.95));
+      opacity: 0.6;
+    }
+
+    .bar-attack {
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.95));
+      opacity: 0.85;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+    }
+
+    .summary-box {
+      margin-top: 0.45rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed rgba(75, 85, 99, 0.9);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .summary-box strong {
+      color: #e5e7ff;
+    }
+
+    .summary-highlight {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.12rem 0.4rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #e0f2fe;
+      border: 1px solid var(--accent-strong);
+      margin-top: 0.25rem;
+    }
+
+    .mini-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .side-notes {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      line-height: 1.5;
+    }
+
+    footer {
+      padding: 0.4rem clamp(1.5rem, 4vw, 3.25rem) 0.9rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    .pill-inline {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 0.06rem 0.45rem;
+      font-size: 0.72rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-row">
+      <div>
+        <h1>
+          <span class="logo-pill">𝛜</span>
+          LDP Poisoning Attacks Playground
+        </h1>
+        <p class="subtitle">
+          Explore how a small number of fake users can corrupt a Local Differential Privacy (LDP)
+          frequency-estimation protocol. Try three attacks: RPA, RIA, and MGA on top of OUE.
+        </p>
+      </div>
+      <div class="badge-row">
+        <div class="badge">Locally Differential Privacy (OUE)</div>
+        <div class="badge">Data Poisoning Attacks</div>
+        <div class="badge">Educational Simulation</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT: Controls + explanations -->
+    <section class="panel">
+      <div class="panel-inner">
+        <h2>1. Configure the LDP experiment</h2>
+        <p>
+          We simulate a population with a hidden value in a domain of size
+          <span class="pill-inline">d</span>, protect it using
+          <strong>Optimized Unary Encoding (OUE)</strong>, and then let an attacker inject fake users.
+        </p>
+
+        <div class="grid-2">
+          <div>
+            <div class="field">
+              <label>
+                Domain size d
+                <span class="help">Number of distinct values</span>
+              </label>
+              <input type="number" id="domainSize" value="32" min="4" max="128" />
+            </div>
+
+            <div class="field">
+              <label>
+                Genuine users n
+                <span class="help">Real participants</span>
+              </label>
+              <input type="number" id="numUsers" value="4000" min="100" max="20000" />
+            </div>
+
+            <div class="field">
+              <label>
+                Privacy budget ε
+                <span class="help">Smaller ε = more noise, harder to defend</span>
+              </label>
+              <input type="number" id="epsilon" value="1.0" step="0.1" min="0.1" max="4" />
+            </div>
+          </div>
+
+          <div>
+            <div class="field">
+              <label>
+                Fake users (% of total)
+                <span class="help">Attacker-controlled</span>
+              </label>
+              <div class="range-row">
+                <input type="range" id="fakeFraction" min="0" max="40" value="10" />
+                <span id="fakeFractionLabel">10%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                # target items
+                <span class="help">Items the attacker boosts</span>
+              </label>
+              <input type="number" id="numTargets" value="3" min="1" max="10" />
+            </div>
+          </div>
+        </div>
+
+        <p class="helper-text">
+          The <strong>true distribution</strong> is skewed: items
+          <span class="pill-inline">0–4</span> are naturally popular. The attacker picks targets from the
+          <span class="pill-inline">upper half</span> of the domain so they should not be among the
+          genuinely high-frequency items under honest behavior.
+        </p>
+
+        <h3>2. Choose an attack strategy</h3>
+        <p>
+          Each fake user sends <em>one</em> report that looks like an OUE-perturbed vector.
+          Different strategies choose those reports differently:
+        </p>
+
+        <div class="attack-buttons">
+          <button class="primary" data-attack="none" id="btnBaseline">
+            <span class="icon">📊</span>
+            Run honest baseline
+          </button>
+          <button data-attack="rpa">
+            <span class="icon">🎲</span>
+            RPA – Random Output
+          </button>
+          <button data-attack="ria">
+            <span class="icon">🎯</span>
+            RIA – Random Target Item
+          </button>
+          <button data-attack="mga">
+            <span class="icon">🚀</span>
+            MGA – Maximal Gain
+          </button>
+        </div>
+
+        <div class="note">
+          <strong>How to read this:</strong>
+          <ul style="margin: 0.2rem 0 0.1rem; padding-left: 1.1rem;">
+            <li><strong>RPA</strong>: fake users ignore targets and send random-looking reports.</li>
+            <li><strong>RIA</strong>: pick a random target item and behave like a normal user with that value.</li>
+            <li><strong>MGA</strong>: directly craft reports that support <em>all</em> targets at once.</li>
+          </ul>
+          The right-hand panel will show how the estimated frequencies change.
+        </div>
+
+        <h3>3. The attacks in context</h3>
+        <div class="attack-card-grid">
+          <div class="attack-card">
+            <h4>Random Perturbed-value Attack <span class="pill">RPA (baseline)</span></h4>
+            <p>
+              Fake users send random outputs from the protocol’s output space, ignoring the targets.
+            </p>
+            <ul>
+              <li>Very weak, often barely changes estimates.</li>
+              <li>Good sanity check for the system.</li>
+            </ul>
+          </div>
+          <div class="attack-card">
+            <h4>Random Item Attack <span class="pill">RIA</span></h4>
+            <p>
+              Each fake user chooses a target item and honestly runs OUE as if they owned it.
+            </p>
+            <ul>
+              <li>Boosts targets proportionally to #fake users.</li>
+              <li>Still respects the protocol rules.</li>
+            </ul>
+          </div>
+          <div class="attack-card">
+            <h4>Maximal Gain Attack <span class="pill">MGA</span></h4>
+            <p>
+              Fake users craft outputs that maximize support for all targets simultaneously.
+            </p>
+            <ul>
+              <li>Strongest effect on estimated frequencies.</li>
+              <li>Demonstrates privacy–security trade-off: more noise can make this easier.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Results -->
+    <section>
+      <div class="results-panel">
+        <h3>Frequency estimates for each item</h3>
+        <div class="results-meta">
+          <div>
+            <span class="tag"><span class="tag-dot true"></span> True</span>
+            <span class="tag"><span class="tag-dot base"></span> Honest OUE</span>
+            <span class="tag"><span class="tag-dot attack"></span> With attack</span>
+            <span class="tag"><span class="tag-dot target"></span> Attacker target</span>
+          </div>
+          <div id="runSummary">No simulation yet. Click an attack button to start.</div>
+        </div>
+
+        <div class="table-wrapper" id="tableContainer">
+          <!-- Table will be injected here -->
+        </div>
+
+        <div class="summary-box" id="summaryBox">
+          <!-- Summary text injected here -->
+        </div>
+
+        <p class="side-notes">
+          This view focuses purely on <strong>frequency estimation</strong> under OUE. In the attack
+          scenarios, look at how target items' estimated frequencies can be inflated relative to their
+          true frequencies and the honest baseline.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      This is a <strong>toy simulator</strong>: enough to see the phenomena, but not a full re-implementation
+      of the paper’s experiments.
+    </div>
+    <div>
+      Suggested extensions: add <span class="pill-inline">kRR</span>,
+      <span class="pill-inline">OLH</span>, and simple defenses (e.g., normalization, fake-user detection).
+    </div>
+  </footer>
+
+  <script>
+    // -----------------------------
+    // Utility: RNG helpers
+    // -----------------------------
+    function sampleCategorical(weights) {
+      const r = Math.random();
+      let acc = 0;
+      for (let i = 0; i < weights.length; i++) {
+        acc += weights[i];
+        if (r <= acc) return i;
+      }
+      return weights.length - 1;
+    }
+
+    // Build a skewed distribution: first few items are popular
+    function buildTrueDistribution(d) {
+      const weights = new Array(d).fill(0);
+      const hotCount = Math.min(5, d);
+      const hotWeight = 4; // relative weight for "popular" items
+      const coldWeight = 1;
+
+      let total = 0;
+      for (let i = 0; i < d; i++) {
+        if (i < hotCount) {
+          weights[i] = hotWeight;
+        } else {
+          weights[i] = coldWeight;
+        }
+        total += weights[i];
+      }
+      return weights.map(w => w / total);
+    }
+
+    function buildTargetSet(d, numTargets) {
+      const half = Math.floor(d / 2);
+      const candidates = [];
+      for (let i = half; i < d; i++) {
+        candidates.push(i);
+      }
+      numTargets = Math.max(1, Math.min(numTargets, candidates.length));
+      // Just take first numTargets for deterministic behavior
+      return candidates.slice(0, numTargets);
+    }
+
+    // -----------------------------
+    // OUE protocol implementation
+    // -----------------------------
+    function encodePerturbOUE(value, d, epsilon) {
+      const p = 0.5;
+      const q = 1 / (Math.exp(epsilon) + 1);
+      const bits = new Array(d).fill(0);
+      bits[value] = 1;
+      const out = new Array(d);
+      for (let i = 0; i < d; i++) {
+        if (bits[i] === 1) {
+          out[i] = Math.random() < p ? 1 : 0;
+        } else {
+          out[i] = Math.random() < q ? 1 : 0;
+        }
+      }
+      return out;
+    }
+
+    // Used for RPA: random OUE-like output
+    function randomOUEOutput(d) {
+      const out = new Array(d);
+      for (let i = 0; i < d; i++) {
+        out[i] = Math.random() < 0.5 ? 1 : 0;
+      }
+      return out;
+    }
+
+    // -----------------------------
+    // Simulation core
+    // -----------------------------
+    function simulateScenario(params, attackType) {
+      const { d, n, fakeFraction, epsilon, numTargets } = params;
+
+      // True distribution
+      const dist = buildTrueDistribution(d);
+      const trueCounts = new Array(d).fill(0);
+      for (let i = 0; i < n; i++) {
+        const v = sampleCategorical(dist);
+        trueCounts[v]++;
+      }
+      const trueFreqs = trueCounts.map(c => c / n);
+
+      // Targets are from the upper half of the domain
+      const targets = buildTargetSet(d, numTargets);
+
+      // Determine number of fake users
+      const m = Math.round((fakeFraction / 100) * n / (1 - fakeFraction / 100));
+      const totalUsers = n + m;
+
+      // OUE parameters
+      const p = 0.5;
+      const q = 1 / (Math.exp(epsilon) + 1);
+
+      // Aggregate reports: sum of "1" bits for each position
+      const bitSums = new Array(d).fill(0);
+
+      // Genuine users (all honest)
+      for (let i = 0; i < n; i++) {
+        const v = sampleCategorical(dist);
+        const report = encodePerturbOUE(v, d, epsilon);
+        for (let j = 0; j < d; j++) {
+          bitSums[j] += report[j];
+        }
+      }
+
+      // Fake users
+      for (let i = 0; i < m; i++) {
+        let report;
+
+        if (attackType === "rpa") {
+          // Random output, uncorrelated with targets
+          report = randomOUEOutput(d);
+        } else if (attackType === "ria") {
+          // Each fake user picks a random target item and behaves honestly
+          const t = targets[Math.floor(Math.random() * targets.length)];
+          report = encodePerturbOUE(t, d, epsilon);
+        } else if (attackType === "mga") {
+          // Maximal Gain Attack: set all target bits to 1
+          // and sprinkle a few decoys to look less suspicious
+          report = new Array(d).fill(0);
+          targets.forEach(idx => {
+            report[idx] = 1;
+          });
+          // Add decoys: choose ~sqrt(d) decoy indices at random
+          const decoyCount = Math.max(1, Math.round(Math.sqrt(d)));
+          for (let k = 0; k < decoyCount; k++) {
+            const index = Math.floor(Math.random() * d);
+            if (!targets.includes(index)) {
+              report[index] = 1;
+            }
+          }
+        } else {
+          // No attack (honest fake users -> this case is used only for a pure baseline)
+          const v = sampleCategorical(dist);
+          report = encodePerturbOUE(v, d, epsilon);
+        }
+
+        for (let j = 0; j < d; j++) {
+          bitSums[j] += report[j];
+        }
+      }
+
+      // Frequency estimation from bitSums
+      const estFreqs = new Array(d);
+      for (let i = 0; i < d; i++) {
+        const c = bitSums[i];
+        const freq = (c / totalUsers - q) / (p - q);
+        estFreqs[i] = Math.max(0, Math.min(1, freq)); // clamp to [0, 1]
+      }
+
+      return {
+        trueFreqs,
+        estFreqs,
+        targets,
+        totalUsers,
+        numGenuine: n,
+        numFake: m,
+      };
+    }
+
+    function runSimulation(attackType) {
+      const d = Math.max(4, Math.min(128, parseInt(document.getElementById("domainSize").value, 10) || 32));
+      const n = Math.max(100, Math.min(20000, parseInt(document.getElementById("numUsers").value, 10) || 4000));
+      const epsilonRaw = parseFloat(document.getElementById("epsilon").value);
+      const epsilon = isNaN(epsilonRaw) ? 1.0 : Math.max(0.1, Math.min(4, epsilonRaw));
+      const fakeFraction = Math.max(0, Math.min(40, parseInt(document.getElementById("fakeFraction").value, 10) || 0));
+      const numTargets = Math.max(1, Math.min(10, parseInt(document.getElementById("numTargets").value, 10) || 3));
+
+      const params = { d, n, fakeFraction, epsilon, numTargets };
+
+      // Baseline: run with no attack
+      const baseline = simulateScenario(params, "none");
+
+      // If attackType is "none", reuse baseline as "attack scenario" for clarity
+      const scenario = attackType === "none"
+        ? { ...baseline }
+        : simulateScenario(params, attackType);
+
+      // Build combined view
+      const rows = [];
+      for (let i = 0; i < d; i++) {
+        rows.push({
+          index: i,
+          trueFreq: baseline.trueFreqs[i],
+          baseFreq: baseline.estFreqs[i],
+          attackFreq: scenario.estFreqs[i],
+        });
+      }
+
+      // Determine which are targets (same rule as in simulation)
+      const targets = scenario.targets;
+      const isTarget = new Array(d).fill(false);
+      targets.forEach(t => {
+        if (t >= 0 && t < d) {
+          isTarget[t] = true;
+        }
+      });
+
+      // Sorting: we show items sorted by attackFreq desc, to highlight the attack's effect
+      rows.sort((a, b) => b.attackFreq - a.attackFreq);
+
+      renderTable(rows, isTarget, attackType, params, baseline, scenario);
+    }
+
+    // -----------------------------
+    // Rendering
+    // -----------------------------
+    function renderTable(rows, isTarget, attackType, params, baseline, scenario) {
+      const container = document.getElementById("tableContainer");
+      const d = params.d;
+
+      let maxTrue = 0;
+      let maxBase = 0;
+      let maxAttack = 0;
+      rows.forEach(r => {
+        if (r.trueFreq > maxTrue) maxTrue = r.trueFreq;
+        if (r.baseFreq > maxBase) maxBase = r.baseFreq;
+        if (r.attackFreq > maxAttack) maxAttack = r.attackFreq;
+      });
+      const maxVal = Math.max(maxTrue, maxBase, maxAttack, 0.01);
+
+      const rowsHtml = rows
+        .map(r => {
+          const tLabel = isTarget[r.index]
+            ? `<span class="target-label">target</span>`
+            : "";
+
+          const gain = r.attackFreq - r.baseFreq;
+          const gainText = gain >= 0 ? `+${gain.toFixed(3)}` : gain.toFixed(3);
+          const gainClass = gain >= 0 ? "gain-positive" : "gain-negative";
+
+          const scaleTrue = (r.trueFreq / maxVal) * 100;
+          const scaleBase = (r.baseFreq / maxVal) * 100;
+          const scaleAttack = (r.attackFreq / maxVal) * 100;
+
+          return `
+          <tr>
+            <td class="item-col">
+              x_${r.index}
+              ${tLabel}
+            </td>
+            <td>${r.trueFreq.toFixed(3)}</td>
+            <td>${r.baseFreq.toFixed(3)}</td>
+            <td>${r.attackFreq.toFixed(3)}</td>
+            <td class="${gainClass}">${gainText}</td>
+            <td class="bar-cell">
+              <div class="bar-track">
+                <div class="bar-true" style="transform: scaleX(${scaleTrue / 100});"></div>
+                <div class="bar-base" style="transform: scaleX(${scaleBase / 100});"></div>
+                <div class="bar-attack" style="transform: scaleX(${scaleAttack / 100});"></div>
+              </div>
+            </td>
+          </tr>`;
+        })
+        .join("");
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left;">Item</th>
+              <th>True&nbsp;freq</th>
+              <th>Baseline&nbsp;OUE</th>
+              <th>With&nbsp;attack</th>
+              <th>Gain</th>
+              <th>Bars</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+
+      const attackName =
+        attackType === "none"
+          ? "no attack (honest-only)"
+          : attackType === "rpa"
+          ? "Random Perturbed-value Attack (RPA)"
+          : attackType === "ria"
+          ? "Random Item Attack (RIA)"
+          : "Maximal Gain Attack (MGA)";
+
+      const summaryBox = document.getElementById("summaryBox");
+      const targets = scenario.targets;
+
+      // Compute average gain over targets
+      let avgGainTargets = 0;
+      targets.forEach(t => {
+        avgGainTargets += scenario.estFreqs[t] - baseline.estFreqs[t];
+      });
+      avgGainTargets /= Math.max(1, targets.length);
+
+      summaryBox.innerHTML = `
+        <div>
+          <strong>Interpretation:</strong>
+          For each item x_i we show the true frequency, the estimated frequency under honest OUE,
+          and the estimated frequency when applying <em>${attackName}</em>.
+        </div>
+        <div class="summary-highlight">
+          <span class="mini-dot"></span>
+          On average, the attack changes the estimated frequency of target items by
+          <strong>${avgGainTargets >= 0 ? "+" : ""}${avgGainTargets.toFixed(3)}</strong>.
+        </div>
+        <div style="margin-top:0.25rem;">
+          <strong>Targets:</strong> ${targets.map(t => "x_" + t).join(", ")}<br/>
+          <strong>Users:</strong> ${baseline.numGenuine.toLocaleString()} genuine,
+          ${scenario.numFake.toLocaleString()} fake (≈${(scenario.numFake / scenario.totalUsers * 100).toFixed(1)}% of total).<br/>
+          <strong>Privacy parameter:</strong> ε = ${params.epsilon.toFixed(2)}
+        </div>
+      `;
+
+      const summaryRun = document.getElementById("runSummary");
+      summaryRun.textContent =
+        attackType === "none"
+          ? "Baseline run with no attacker."
+          : `Attack run: ${attackName}. Scroll the table to see which items are most affected.`;
+    }
+
+    // -----------------------------
+    // Event wiring
+    // -----------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const fakeSlider = document.getElementById("fakeFraction");
+      const fakeLabel = document.getElementById("fakeFractionLabel");
+
+      const updateFakeLabel = () => {
+        const v = parseInt(fakeSlider.value, 10) || 0;
+        fakeLabel.textContent = v + "%";
+      };
+      fakeSlider.addEventListener("input", updateFakeLabel);
+      updateFakeLabel();
+
+      const buttons = document.querySelectorAll("button[data-attack]");
+      buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const attack = btn.getAttribute("data-attack");
+          runSimulation(attack);
+        });
+      });
+
+      // Also wire dedicated baseline button
+      document.getElementById("btnBaseline").addEventListener("click", () => {
+        runSimulation("none");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Data Poisoning Attacks on kRR (Demo)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+      color: #111827;
+    }
+    header {
+      padding: 1rem 2rem;
+      background: #111827;
+      color: #f9fafb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    main {
+      padding: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 2fr;
+      gap: 1rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .field-group {
+      margin-bottom: 0.75rem;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .field-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 0.3rem 0.4rem;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      font-size: 0.8rem;
+      box-sizing: border-box;
+    }
+    .small-text {
+      font-size: 0.7rem;
+      color: #6b7280;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #f9fafb;
+      margin-right: 0.5rem;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .charts {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    canvas {
+      background: #ffffff;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Data Poisoning Attacks on kRR</h1>
+  <div style="font-size: 0.8rem; opacity: 0.9;">
+    Overall gain G and normalized gain (G + f<sub>T</sub>)/f<sub>T</sub>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- Controls -->
+    <div class="card">
+      <h2>Scenario &amp; Parameters</h2>
+
+      <!-- Scenario presets -->
+      <div class="field-group">
+        <label for="preset">Scenario preset</label>
+        <select id="preset">
+          <!-- Paper-like defaults (Table 2 + kRR-specific d) -->
+          <option value="paper_zipf">Paper default (Zipf, d = 1024, r = 1, f_T = 0.01)</option>
+          <!-- Example alternative "categories & distributions" -->
+          <option value="paper_fire">Paper Fire-like (d = 244, r = 1, f_T = 0.01)</option>
+          <option value="paper_ipums">Paper IPUMS-like (d = 102, r = 1, f_T = 0.01)</option>
+          <option value="custom">Custom</option>
+        </select>
+        <div class="small-text">
+          Presets approximate the datasets used in the paper (Zipf, Fire, IPUMS).
+        </div>
+      </div>
+
+      <!-- Underlying distribution -->
+      <div class="field-group">
+        <label for="distribution">Underlying item distribution (for f<sub>T</sub>)</label>
+        <select id="distribution">
+          <option value="direct">Direct f<sub>T</sub> (match paper)</option>
+          <option value="uniform">Uniform over d items</option>
+          <option value="zipf">Zipf over d items (s = 1.0)</option>
+        </select>
+        <div class="small-text">
+          In “Direct f<sub>T</sub>” mode, you set f<sub>T</sub> yourself (as in the paper’s theoretical analysis).
+        </div>
+      </div>
+
+      <!-- Core parameters -->
+      <div class="field-row">
+        <div class="field-group">
+          <label for="beta">β (fake user fraction)</label>
+          <input type="number" id="beta" step="0.0001" min="0" max="0.9" value="0.05">
+        </div>
+        <div class="field-group">
+          <label for="epsilon">ε (privacy budget)</label>
+          <input type="number" id="epsilon" step="0.1" min="0.01" value="1">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="d">d (number of items)</label>
+          <input type="number" id="d" step="1" min="2" value="1024">
+        </div>
+        <div class="field-group">
+          <label for="r">r (number of target items)</label>
+          <input type="number" id="r" step="1" min="1" value="1">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="fT">f<sub>T</sub> (sum true freq. of targets)</label>
+          <input type="number" id="fT" step="0.0001" min="1e-6" max="1" value="0.01">
+          <div class="small-text">
+            Only used directly if distribution = “Direct f<sub>T</sub>”.
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="nUsers">n (genuine users, only for info)</label>
+          <input type="number" id="nUsers" step="1000" min="1000" value="1000000">
+          <div class="small-text">
+            G formulas depend only on β, not directly on n.
+          </div>
+        </div>
+      </div>
+
+      <!-- What parameter to sweep -->
+      <div class="field-group">
+        <label for="xParam">Parameter to sweep on x-axis</label>
+        <select id="xParam">
+          <option value="beta">β</option>
+          <option value="fT">f<sub>T</sub></option>
+          <option value="epsilon">ε</option>
+          <option value="d">d</option>
+          <option value="r">r</option>
+        </select>
+        <div class="small-text">Like the columns in Figure 1 for kRR.</div>
+      </div>
+
+      <!-- Sweep range -->
+      <div class="field-row">
+        <div class="field-group">
+          <label for="xMin">x min</label>
+          <input type="number" id="xMin" step="0.0001" value="0.0001">
+        </div>
+        <div class="field-group">
+          <label for="xMax">x max</label>
+          <input type="number" id="xMax" step="0.1" value="0.1">
+        </div>
+        <div class="field-group">
+          <label for="numPoints"># points</label>
+          <input type="number" id="numPoints" step="1" min="2" max="200" value="50">
+        </div>
+      </div>
+
+      <!-- Log scale toggle -->
+      <div class="field-group">
+        <label>Y-axis for G</label>
+        <select id="gScale">
+          <option value="log">logarithmic (as in paper figs)</option>
+          <option value="linear">linear</option>
+        </select>
+      </div>
+
+      <!-- Buttons -->
+      <div class="field-group">
+        <button id="updateBtn">Update graphs</button>
+        <button id="resetBtn" class="secondary">Reset to paper-like</button>
+      </div>
+
+      <div class="small-text">
+        Formulas follow Table&nbsp;1 for kRR and the normalized gain definition in Section 5.2 of the paper.
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts">
+      <div class="card">
+        <h2>Overall gain G (first row in Figure 1, kRR)</h2>
+        <canvas id="gChart" height="260"></canvas>
+      </div>
+      <div class="card">
+        <h2>Normalized overall gain (G + f<sub>T</sub>)/f<sub>T</sub> (second row in Figure 1, kRR)</h2>
+        <canvas id="normChart" height="260"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Utility: generate simple Zipf distribution
+  function zipfDistribution(d, s = 1.0) {
+    const probs = new Array(d);
+    let norm = 0;
+    for (let i = 1; i <= d; i++) {
+      norm += 1 / Math.pow(i, s);
+    }
+    for (let i = 0; i < d; i++) {
+      probs[i] = (1 / Math.pow(i + 1, s)) / norm;
+    }
+    return probs;
+  }
+
+  // Compute f_T from distribution for given r
+  function computeFTFromDistribution(d, r, distribution) {
+    if (distribution === "uniform") {
+      // Top-r items or arbitrary r items; either way sum is r/d
+      return r / d;
+    }
+    if (distribution === "zipf") {
+      const probs = zipfDistribution(d, 1.0);
+      // Take top-r items as targets (most popular)
+      let sum = 0;
+      for (let i = 0; i < r && i < probs.length; i++) {
+        sum += probs[i];
+      }
+      return sum;
+    }
+    // "direct" mode: return null to signal "use input f_T"
+    return null;
+  }
+
+  // Theoretical overall gains for kRR (Table 1)
+  function G_kRR_RPA(beta, r, d, fT) {
+    return beta * (r / d - fT);
+  }
+  function G_kRR_RIA(beta, r, d, fT) {
+    return beta * (1 - fT);
+  }
+  function G_kRR_MGA(beta, r, d, fT, epsilon) {
+    // β(1 - f_T) + β(d - r)/(e^ε - 1)
+    const extra = (d - r) / (Math.exp(epsilon) - 1);
+    return beta * (1 - fT) + beta * extra;
+  }
+
+  // Normalized overall gain: (G + fT) / fT
+  function normalizedGain(G, fT) {
+    return (G + fT) / fT;
+  }
+
+  // Charts
+  let gChart, normChart;
+
+  function createCharts() {
+    const gCtx = document.getElementById("gChart").getContext("2d");
+    const normCtx = document.getElementById("normChart").getContext("2d");
+
+    gChart = new Chart(gCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "RPA", data: [], borderWidth: 2, tension: 0.15 },
+          { label: "RIA", data: [], borderWidth: 2, tension: 0.15 },
+          { label: "MGA", data: [], borderWidth: 2, tension: 0.15 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: { display: true, text: "Parameter" }
+          },
+          y: {
+            type: "logarithmic",
+            title: { display: true, text: "G (overall gain)" },
+            min: 1e-8,
+            ticks: {
+              callback: (value) => Number(value).toExponential(0)
+            }
+          }
+        },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: { mode: "index", intersect: false }
+        }
+      }
+    });
+
+    normChart = new Chart(normCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "RPA", data: [], borderWidth: 2, tension: 0.15 },
+          { label: "RIA", data: [], borderWidth: 2, tension: 0.15 },
+          { label: "MGA", data: [], borderWidth: 2, tension: 0.15 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: { display: true, text: "Parameter" }
+          },
+          y: {
+            title: { display: true, text: "(G + f_T) / f_T" }
+          }
+        },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: { mode: "index", intersect: false }
+        }
+      }
+    });
+  }
+
+  // Update charts based on current UI
+  function updateCharts() {
+    const preset = document.getElementById("preset").value;
+    const distribution = document.getElementById("distribution").value;
+
+    let beta = parseFloat(document.getElementById("beta").value);
+    let epsilon = parseFloat(document.getElementById("epsilon").value);
+    let d = parseInt(document.getElementById("d").value, 10);
+    let r = parseInt(document.getElementById("r").value, 10);
+    let fTInput = parseFloat(document.getElementById("fT").value);
+    const nUsers = parseInt(document.getElementById("nUsers").value, 10);
+    const xParam = document.getElementById("xParam").value;
+    const xMin = parseFloat(document.getElementById("xMin").value);
+    const xMax = parseFloat(document.getElementById("xMax").value);
+    const numPoints = parseInt(document.getElementById("numPoints").value, 10);
+    const gScale = document.getElementById("gScale").value;
+
+    // Apply preset overrides if not custom
+    if (preset === "paper_zipf") {
+      d = 1024;
+      r = 1;
+      beta = 0.05;
+      epsilon = 1.0;
+      fTInput = 0.01;
+    } else if (preset === "paper_fire") {
+      d = 244;
+      r = 1;
+      beta = 0.05;
+      epsilon = 1.0;
+      fTInput = 0.01;
+    } else if (preset === "paper_ipums") {
+      d = 102;
+      r = 1;
+      beta = 0.05;
+      epsilon = 1.0;
+      fTInput = 0.01;
+    }
+    // (if "custom", keep user values)
+
+    // Precompute distribution-based fT if needed (for base settings).
+    let baseFT;
+    if (distribution === "direct") {
+      baseFT = fTInput;
+    } else {
+      const ftFromDist = computeFTFromDistribution(d, r, distribution);
+      baseFT = ftFromDist !== null ? ftFromDist : fTInput;
+    }
+
+    const xs = [];
+    const G_RPA = [];
+    const G_RIA = [];
+    const G_MGA = [];
+    const NG_RPA = [];
+    const NG_RIA = [];
+    const NG_MGA = [];
+
+    // Choose if sweep is linear (for most) or log spaced (for beta, fT as in paper)
+    const logSweep = (xParam === "beta" || xParam === "fT");
+    let sweepValues = [];
+    if (logSweep) {
+      const logMin = Math.log10(xMin);
+      const logMax = Math.log10(xMax);
+      for (let i = 0; i < numPoints; i++) {
+        const t = i / (numPoints - 1);
+        sweepValues.push(Math.pow(10, logMin + t * (logMax - logMin)));
+      }
+    } else {
+      for (let i = 0; i < numPoints; i++) {
+        const t = i / (numPoints - 1);
+        sweepValues.push(xMin + t * (xMax - xMin));
+      }
+    }
+
+    sweepValues.forEach((xVal) => {
+      // Local copies that we modify for each xVal
+      let beta_i = beta;
+      let epsilon_i = epsilon;
+      let d_i = d;
+      let r_i = r;
+      let fT_i = baseFT;
+
+      if (xParam === "beta") beta_i = xVal;
+      if (xParam === "epsilon") epsilon_i = xVal;
+      if (xParam === "d") d_i = Math.max(2, Math.round(xVal));
+      if (xParam === "r") r_i = Math.max(1, Math.round(xVal));
+      if (xParam === "fT") fT_i = xVal;
+
+      // If we’re in distribution mode and sweeping d or r, recompute fT from distribution
+      if (distribution !== "direct" && (xParam === "d" || xParam === "r")) {
+        const ftFromDist = computeFTFromDistribution(d_i, r_i, distribution);
+        if (ftFromDist !== null) fT_i = ftFromDist;
+      }
+
+      // Guard: f_T should be > 0
+      if (fT_i <= 0) fT_i = 1e-8;
+
+      const G_rpa = G_kRR_RPA(beta_i, r_i, d_i, fT_i);
+      const G_ria = G_kRR_RIA(beta_i, r_i, d_i, fT_i);
+      const G_mga = G_kRR_MGA(beta_i, r_i, d_i, fT_i, epsilon_i);
+
+      xs.push(xVal);
+      G_RPA.push(Math.abs(G_rpa) + 1e-12); // avoid exact zero on log scale
+      G_RIA.push(Math.abs(G_ria) + 1e-12);
+      G_MGA.push(Math.abs(G_mga) + 1e-12);
+
+      NG_RPA.push(normalizedGain(G_rpa, fT_i));
+      NG_RIA.push(normalizedGain(G_ria, fT_i));
+      NG_MGA.push(normalizedGain(G_mga, fT_i));
+    });
+
+    // Update G chart
+    gChart.data.labels = xs;
+    gChart.data.datasets[0].data = G_RPA;
+    gChart.data.datasets[1].data = G_RIA;
+    gChart.data.datasets[2].data = G_MGA;
+    gChart.options.scales.y.type = gScale === "log" ? "logarithmic" : "linear";
+    if (gScale === "log") {
+      gChart.options.scales.y.min = 1e-8;
+      gChart.options.scales.y.ticks.callback = (value) => Number(value).toExponential(0);
+    } else {
+      delete gChart.options.scales.y.min;
+      gChart.options.scales.y.ticks.callback = undefined;
+    }
+    // Axis label
+    const xAxisLabel = {
+      beta: "β (fake user fraction)",
+      fT: "f_T (sum true frequencies of targets)",
+      epsilon: "ε (privacy budget)",
+      d: "d (number of items)",
+      r: "r (number of target items)"
+    }[xParam] || "parameter";
+    gChart.options.scales.x.title.text = xAxisLabel;
+    gChart.update();
+
+    // Update normalized gain chart
+    normChart.data.labels = xs;
+    normChart.data.datasets[0].data = NG_RPA;
+    normChart.data.datasets[1].data = NG_RIA;
+    normChart.data.datasets[2].data = NG_MGA;
+    normChart.options.scales.x.title.text = xAxisLabel;
+    normChart.update();
+  }
+
+  function resetToPaperLike() {
+    document.getElementById("preset").value = "paper_zipf";
+    document.getElementById("distribution").value = "direct";
+    document.getElementById("beta").value = 0.05;
+    document.getElementById("epsilon").value = 1.0;
+    document.getElementById("d").value = 1024;
+    document.getElementById("r").value = 1;
+    document.getElementById("fT").value = 0.01;
+    document.getElementById("xParam").value = "beta";
+    document.getElementById("xMin").value = 1e-4;
+    document.getElementById("xMax").value = 1e-1;
+    document.getElementById("numPoints").value = 50;
+    document.getElementById("gScale").value = "log";
+    updateCharts();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    createCharts();
+    document.getElementById("updateBtn").addEventListener("click", updateCharts);
+    document.getElementById("resetBtn").addEventListener("click", resetToPaperLike);
+    document.getElementById("preset").addEventListener("change", () => {
+      // On preset change, reset sweep to something sensible
+      const preset = document.getElementById("preset").value;
+      if (preset === "paper_zipf" || preset === "paper_fire" || preset === "paper_ipums") {
+        document.getElementById("distribution").value = "direct";
+      }
+      updateCharts();
+    });
+    resetToPaperLike();
+  });
+</script>
+</body>
+</html>

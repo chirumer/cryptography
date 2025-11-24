@@ -1,0 +1,75 @@
+<table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Aspect</th>
+      <th>Hash-Based</th>
+      <th>Lattice-Based</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Security Assumption</td>
+      <td>
+        Only relies on cryptographic hash-function hardness.<br>
+        <a href="https://en.wikipedia.org/wiki/Hash-based_cryptography">Hash-based cryptography</a>
+      </td>
+      <td>
+        Based on hardness of lattice problems such as LWE/R-LWE.<br>
+        <a href="https://en.wikipedia.org/wiki/Lattice-based_cryptography">Lattice-based cryptography</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Resistance to Quantum Attacks</td>
+      <td>
+        Secure against Shor’s algorithm; only Grover’s square-root speed-up applies.<br>
+        <a href="https://www.redhat.com/en/blog/post-quantum-cryptography-hash-based-signatures">Quantum-resistant hashing</a>
+      </td>
+      <td>
+        Believed secure against known quantum attacks; strong worst-case reductions.<br>
+        <a href="https://arxiv.org/abs/2404.19186">Lattice PQ security analysis</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Functionality</td>
+      <td>
+        Mainly digital signatures (XMSS, LMS, SPHINCS+).<br>
+        <a href="https://en.wikipedia.org/wiki/Hash-based_cryptography">Hash-based signature overview</a>
+      </td>
+      <td>
+        Supports encryption, KEMs, signatures, and more.<br>
+        <a href="https://en.wikipedia.org/wiki/Post-quantum_cryptography">PQC overview</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Key / Signature Size</td>
+      <td>
+        Typically larger signatures; sometimes stateful.<br>
+        <a href="https://www.redhat.com/en/blog/post-quantum-cryptography-hash-based-signatures">Hash-based performance</a>
+      </td>
+      <td>
+        Often smaller keys/signatures (e.g., CRYSTALS-Dilithium).<br>
+        <a href="https://www.nsa.gov/Cybersecurity/NSAs-Cybersecurity-Perspective-on-Post-Quantum-Cryptography-Algorithms/">NSA PQC guidance</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Operational Complexity</td>
+      <td>
+        Stateful schemes require key-usage tracking; stateless exist but heavier.<br>
+        <a href="https://en.wikipedia.org/wiki/Hash-based_cryptography">XMSS / LMS details</a>
+      </td>
+      <td>
+        Similar to classical PKC but requires careful parameter selection.<br>
+        <a href="https://www.computer.org/publications/tech-news/trends/quantum-resistant-cryptography">Quantum-resistant crypto</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Maturity & Trust Model</td>
+      <td>
+        Very conservative — relies only on hash-function security.
+      </td>
+      <td>
+        Strong theoretical backing via worst-case reductions; widely standardized (e.g., Kyber, Dilithium).
+      </td>
+    </tr>
+  </tbody>
+</table>
