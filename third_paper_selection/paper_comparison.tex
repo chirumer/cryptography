@@ -130,6 +130,11 @@ Kairouz2016 \\
 Further Study on Frequency Estimation under Local Differential Privacy &
 \href{https://www.usenix.org/conference/usenixsecurity25/presentation/fang}{USENIX} &
 Fang2025 \\
+\midrule
+
+Mitigating Data Poisoning Attacks to Local Differential Privacy &
+\href{https://dl.acm.org/doi/10.1145/3719027.3744839}{ACM DL} &
+Li2025Mitig \\
 
 \end{longtable}
 
@@ -174,6 +179,13 @@ Fang2025 &
 USENIX Security &
 \#1 &
 \href{https://scholar.google.es/citations?view_op=top_venues&hl=en&vq=eng_computersecuritycryptography}{Computer Security \& Cryptography} \\
+\midrule
+
+Li2025Mitig &
+2025 &
+ACM CCS &
+\#5 &
+\href{https://scholar.google.es/citations?view_op=top_venues&hl=en&vq=eng_computersecuritycryptography}{Computer Security \& Cryptography} \\
 
 \end{longtable}
 
@@ -188,8 +200,6 @@ USENIX Security &
 RAPPOR: Randomized Aggregatable Privacy‑Preserving Ordinal Response & \href{https://www.scopus.com/record/display.url?eid=2-s2.0-84910685712&origin=resultslist}{Scopus} & RAPPOR2014 \\
 \midrule
 Locally Differentially Private Frequency Estimation with Consistency & \href{https://www.ndss-symposium.org/wp-content/uploads/2020/02/24157-paper.pdf}{NDSS 2020 PDF} & Wang2020 \\
-\midrule
-Mitigating Data Poisoning Attacks to Local Differential Privacy & \href{https://arxiv.org/abs/2506.02156}{arXiv} & Li2025Mitig \\
 \end{longtable}
 
 \subsection{Publication Details}
@@ -201,13 +211,13 @@ Mitigating Data Poisoning Attacks to Local Differential Privacy & \href{https://
 RAPPOR2014 & 2014 & ACM CCS & \#5 & \href{https://scholar.google.es/citations?view_op=top_venues&hl=en&vq=eng_computersecuritycryptography}{Computer Security \& Cryptography} \\
 \midrule
 Wang2020 & 2020 & NDSS & \#7 & \href{https://scholar.google.es/citations?view_op=top_venues&hl=en&vq=eng_computersecuritycryptography}{Computer Security \& Cryptography} \\
-\midrule
-Li2025Mitig & 2025 & ACM CCS & \#5 & \href{https://scholar.google.es/citations?view_op=top_venues&hl=en&vq=eng_computersecuritycryptography}{Computer Security \& Cryptography} \\
 \end{longtable}
 
-\section{Analysis of Wang2021}
+\section{Analysis}
 
-\subsection{Relevance to Cao2020}
+\subsection{Wang2021}
+
+\subsubsection{Relevance to Cao2020}
 
 Introduces the PEM, which is mentioned in Cao2020 in the following sections:
 
@@ -248,9 +258,9 @@ Fake user detection via frequent itemset mining at each PEM iteration \\
 
 \end{longtable}
 
-\section{Analysis of Fang2025}
+\subsection{Fang2025}
 
-\subsection{Contribution}
+\subsubsection{Usefulness}
 
 \begin{itemize}
 \item It's a very recent paper and introduces a latest LDP protocol called RWS
@@ -258,7 +268,7 @@ Fake user detection via frequent itemset mining at each PEM iteration \\
 \item To be filled
 \end{itemize}
 
-\subsection{Relevance to Wang2017}
+\subsubsection{Relevance to Wang2017}
 
 Shows that OUE and OLH are not optimally parameterized, introducing improvements with RUE and RLH. The paper discusses OUE and OLH in the following sections:
 
@@ -323,7 +333,59 @@ Addresses OLH's slow server-side computation and how RLH solves it \\
 
 \end{longtable}
 
-\section{Analysis of Kairouz2016}
+\subsection{Kairouz2016}
 
 This paper is \textbf{not ideal for selection} as it is published in an Artificial Intelligence venue rather than a cryptography one
+
+\subsection{Li2025Mitig}
+
+\subsubsection{Usefulness}
+
+\begin{itemize}
+\item This paper directly references Cao2020 
+\item To be filled
+\item To be filled
+\end{itemize}
+
+\subsubsection{Relevance to Cao2020}
+
+Builds on top of MGA (the strongest attack) introduced in Cao2020. Li2025Mitig discusses MGA and proposes defenses in the following sections:
+
+\begin{longtable}{p{0.20\textwidth}p{0.70\textwidth}}
+\toprule
+\textbf{Li2025Mitig Section} & \textbf{Discussion} \\
+\midrule
+\endfirsthead
+
+\multicolumn{2}{c}%
+{\tablename\ \thetable\ -- \textit{Continued from previous page}} \\
+\toprule
+\textbf{Li2025Mitig Section} & \textbf{Discussion} \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{2}{r}{\textit{Continued on next page}} \\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+Section 3.2 &
+Main formal description of MGA extended to different LDP protocols (OUE, OLH-User/Server, HST-User/Server, GRR) \\
+\midrule
+
+Section 4.1 &
+Theoretical analysis of fake user detection including expected squared error under MGA and chi-square error statistics \\
+\midrule
+
+Section 5 &
+Detection evaluation comparing methods such as Diffstats and FIAD against MGA attacks \\
+\midrule
+
+Figures 6 \& 8 &
+Experimental results showing utility recovery and detection performance under MGA and MGA-A for various protocols \\
+
+\end{longtable}
+
 \end{document}
