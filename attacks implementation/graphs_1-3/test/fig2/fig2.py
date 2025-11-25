@@ -60,7 +60,7 @@ def plot_top_row(ax, x_values, G_RPA, G_RIA, G_MGA, xlabel, xscale='log', show_l
     ax.set_ylabel('G', fontsize=12)
     ax.set_xscale(xscale)
     ax.set_yscale('log')
-    ax.set_ylim(1e-3, 1e0)
+    ax.set_ylim(1e-3, 1e1)
     ax.grid(True, alpha=0.3)
     if show_legend:
         ax.legend(loc='best', fontsize=8)
@@ -158,20 +158,5 @@ plt.suptitle('Figure 2: Impact of different parameters on the overall gains (fir
              fontsize=12, y=-0.02)
 plt.subplots_adjust(bottom=0.15)
 
-plt.savefig('fig2_recreated_oue.png', dpi=150, bbox_inches='tight')
 plt.savefig('fig2_recreated.png', dpi=150, bbox_inches='tight')
 print("Figure saved!")
-
-# Verification
-print("\n=== Verification for OUE with default parameters ===")
-print(f"Default: β={beta_default}, r={r_default}, f_T={fT_default}, ε={epsilon_default}, d={d_default}")
-print(f"\nRPA: G = β(r - f_T) = {beta_default} × ({r_default} - {fT_default}) = {G_RPA_OUE(beta_default, r_default, fT_default, epsilon_default, d_default):.6f}")
-print(f"RIA: G = β(1 - f_T) = {beta_default} × (1 - {fT_default}) = {G_RIA_OUE(beta_default, r_default, fT_default, epsilon_default, d_default):.6f}")
-print(f"MGA: G = β(2r - f_T) + 2βr/(e^ε - 1) = {G_MGA_OUE(beta_default, r_default, fT_default, epsilon_default, d_default):.6f}")
-
-print("\n=== Verification for graph 2 (varying r) ===")
-for r in r_range:
-    g_rpa = G_RPA_OUE(beta_default, r, fT_default, epsilon_default, d_default)
-    g_ria = G_RIA_OUE(beta_default, r, fT_default, epsilon_default, d_default)
-    g_mga = G_MGA_OUE(beta_default, r, fT_default, epsilon_default, d_default)
-    print(f"  r={r}: RPA={g_rpa:.4f}, RIA={g_ria:.4f}, MGA={g_mga:.4f}")
