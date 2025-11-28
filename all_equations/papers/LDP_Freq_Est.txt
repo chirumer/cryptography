@@ -1,0 +1,1319 @@
+        Locally Differentially Private Protocols
+               for Frequency Estimation
+         Tianhao Wang, Jeremiah Blocki, and Ninghui Li, Purdue University;
+                  Somesh Jha, University of Wisconsin Madison
+https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/wang-tianhao
+
+
+
+
+            This paper is included in the Proceedings of the
+                   26th USENIX Security Symposium
+                      August 16–18, 2017 • Vancouver, BC, Canada
+                                    ISBN 978-1-931971-40-9
+
+
+
+
+                                                Open access to the Proceedings of the
+                                                 26th USENIX Security Symposium
+                                                      is sponsored by USENIX
+         Locally Differentially Private Protocols for Frequency Estimation
+
+         Tianhao Wang, Jeremiah Blocki, Ninghui Li                                Somesh Jha
+                    Purdue University                                  University of Wisconsin-Madison
+
+
+
+
+                        Abstract                               such as the default homepage of the browser, the default
+                                                               search engine, and so on, to understand the unwanted
+Protocols satisfying Local Differential Privacy (LDP) en-
+                                                               or malicious hijacking of user settings. Apple [1] also
+able parties to collect aggregate information about a pop-
+                                                               uses similar methods to help with predictions of spelling
+ulation while protecting each user’s privacy, without re-
+                                                               and other things, but the details of the algorithm are not
+lying on a trusted third party. LDP protocols (such as
+                                                               public yet. Samsung proposed a similar system [21]
+Google’s RAPPOR) have been deployed in real-world
+                                                               which enables collection of not only categorical answers
+scenarios. In these protocols, a user encodes his pri-
+                                                               (e.g., screen resolution) but also numerical answers (e.g.,
+vate information and perturbs the encoded value locally
+                                                               time of usage, battery volume), although it is not clear
+before sending it to an aggregator, who combines val-
+                                                               whether this has been deployed by Samsung.
+ues that users contribute to infer statistics about the pop-
+                                                                  A basic goal in the LDP setting is frequency estima-
+ulation. In this paper, we introduce a framework that
+                                                               tion. A protocol for doing this can be broken down
+generalizes several LDP protocols proposed in the liter-
+                                                               into following steps: For each question, each user en-
+ature. Our framework yields a simple and fast aggre-
+                                                               codes his or her answer (called input) into a specific for-
+gation algorithm, whose accuracy can be precisely ana-
+                                                               mat, randomizes the encoded value to get an output, and
+lyzed. Our in-depth analysis enables us to choose opti-
+                                                               then sends the output to the aggregator, who then aggre-
+mal parameters, resulting in two new protocols (i.e., Op-
+                                                               gates and decodes the reported values to obtain, for each
+timized Unary Encoding and Optimized Local Hashing)
+                                                               value of interest, an estimate of how many users have that
+that provide better utility than protocols previously pro-
+                                                               value. With improvement on the basic task of frequency
+posed. We present precise conditions for when each pro-
+                                                               estimation, solutions to more complex problems that rely
+posed protocol should be used, and perform experiments
+                                                               on it, such as heavy hitter identification, frequent itemset
+that demonstrate the advantage of our proposed proto-
+                                                               mining, can also be improved.
+cols.
+                                                                  We introduce a framework for what we call “pure”
+                                                               LDP protocols, which has a nice symmetric property.
+1   Introduction                                               We introduce a simple, generic aggregation and decod-
+                                                               ing technique that works for all pure LDP protocols, and
+Differential privacy [10, 11] has been increasingly ac-        prove that this technique results in an unbiased estimate.
+cepted as the de facto standard for data privacy in the        We also present a formula for the variance of the esti-
+research community. While many differentially private          mate. Most existing protocols fit our proposed frame-
+algorithms have been developed for data publishing and         work. The framework also enables us to precisely ana-
+analysis [12, 19], there have been few deployments of          lyze and compare the accuracy of different protocols, and
+such techniques. Recently, techniques for satisfying dif-      generalize and optimize them. For example, we show
+ferential privacy (DP) in the local setting, which we          that the Basic RAPPOR protocol [13], which essentially
+call LDP, have been deployed. Such techniques enable           uses unary encoding of input, chooses sub-optimal pa-
+gathering of statistics while preserving privacy of every      rameters for the randomization step. Optimizing the pa-
+user, without relying on trust in a single data curator.       rameters results in what we call the Optimized Unary
+For example, researchers from Google developed RAP-            Encoding (OUE) protocol, which has significantly bet-
+POR [13, 16], which is included as part of Chrome. It          ter accuracy.
+enables Google to collect users’ answers to questions             Protocols based on unary encoding require Θ(d) com-
+
+
+
+USENIX Association                                                             26th USENIX Security Symposium         729
+munication cost, where d is the number of possible in-        tion 6. We review related work in Section 7, discuss in
+put values, and can be very large (or even unbounded)         Section 8, and conclude in Section 9.
+for some applications. The RAPPOR protocol uses a
+Bloom filter encoding to reduce the communication cost;
+however, this comes with a cost of decreasing accuracy        2     Background and Existing Protocols
+as well as increasing computation cost for aggregation
+and decoding. The random matrix projection-based ap-          The notion of differential privacy was originally intro-
+proach introduced in [6] has Θ(log n) communication           duced for the setting where there is a trusted data cu-
+cost (where n is the number of users); however, its accu-     rator, who gathers data from individual users, processes
+racy is unsatisfactory. We observe that in our framework      the data in a way that satisfies DP, and then publishes the
+this protocol can be interpreted as binary local hash-        results. Intuitively, the DP notion requires that any sin-
+ing. Generalizing this and optimizing the parameters re-      gle element in a dataset has only a limited impact on the
+sults in a new Optimized Local Hashing (OLH) protocol,        output.
+which provides much better accuracy while still requir-
+ing Θ(log n) communication cost. The variance of OLH          Definition 1 (Differential Privacy) An algorithm A
+is orders of magnitude smaller than the previous meth-        satisfies ε-differential privacy (ε-DP), where ε ≥ 0, if
+ods, for ε values used in RAPPOR’s implementation. In-        and only if for any datasets D and D′ that differ in one
+terestingly, OLH has the same error variance as OUE;          element, we have
+thus it reduces communication cost at no cost of utility.
+                                                                  ∀t ∈ Range(A) : Pr [A(D) = t] ≤ eε Pr A(D′ ) = t ,
+                                                                                                       [          ]
+   With LDP, it is possible to collect data that was in-
+accessible because of privacy issues. Moreover, the in-
+                                                              where Range(A) denotes the set of all possible outputs
+creased amount of data will significantly improve the
+                                                              of the algorithm A.
+performance of some learning tasks. Understanding cus-
+tomer statistics help cloud server and software platform
+operators to better understand the needs of populations       2.1     Local Differential Privacy Protocols
+and offer more effective and reliable services. Such
+privacy-preserving crowd-sourced statistics are also use-     In the local setting, there is no trusted third party. An ag-
+ful for providing better security while maintaining a level   gregator wants to gather information from users. Users
+of privacy. For example, in [13], it is demonstrated          are willing to help the aggregator, but do not fully trust
+that such techniques can be applied to collecting win-        the aggregator for privacy. For the sake of privacy, each
+dows process names and Chrome homepages to discover           user perturbs her own data before sending it to the aggre-
+malware processes and unexpected default homepages            gator (via a secure channel). For this paper, we consider
+(which could be malicious).                                   that each user has a single value v, which can be viewed
+   Our paper makes the following contributions:               as the user’s answer to a given question. The aggrega-
+                                                              tor aims to find out the frequencies of values among the
+  • We introduce a framework for “pure” LDP proto-
+                                                              population. Such a data collection protocol consists of
+    cols, and develop a simple, generic aggregation and
+                                                              the following algorithms:
+    decoding technique that works for all such proto-
+    cols. This framework enables us to analyze, gener-           • Encode is executed by each user. The algorithm
+    alize, and optimize different LDP protocols.                    takes an input value v and outputs an encoded value
+                                                                    x.
+  • We introduce the Optimized Local Hashing (OLH)
+    protocol, which has low communication cost and                • Perturb, which takes an encoded value x and out-
+    provides much better accuracy than existing proto-              puts y. Each user with value v reports y =
+    cols. For ε ≈ 4, which was used in the RAPPOR                   Perturb(Encode(v)). For compactness, we use
+    implementation, the variance of OLH’s estimation                PE(·) to denote the composition of the encod-
+    is 1/2 that of RAPPOR, and close to 1/14 that of                ing and perturbation algorithms, i.e., PE(·) =
+    Random Matrix Projection [6]. Systems using LDP                 Perturb(Encode(·)). PE(·) should satisfy ε-local
+    as a primitive could benefit significantly by adopt-            differential privacy, as defined below.
+    ing improved LDP protocols like OLH.                          • Aggregate is executed by the aggregator; it takes all
+  Roadmap. In Section 2, we describe existing proto-                the reported values, and outputs aggregated infor-
+cols from [13, 6]. We then present our framework for                mation.
+pure LDP protocols in Section 3, apply it to study LDP
+protocols in Section 4, and compare different LDP proto-      Definition 2 (Local Differential Privacy) An       algo-
+cols in Section 5. We show experimental results in Sec-       rithm A satisfies ε-local differential privacy (ε-LDP),
+
+
+
+730   26th USENIX Security Symposium                                                                USENIX Association
+where ε ≥ 0, if and only if for any input v1 and v2 , we          RAPPOR’s implementation uses f = 1/2 and f = 1/4.
+have                                                              Note that this randomization is symmetric in the sense
+                                                                  that Pr [B1 [i] = 1|B0 [i] = 1] = Pr [B1 [i] = 0|B0 [i] = 0] =
+  ∀y ∈ Range(A) : Pr [A(v1 ) = y] ≤ eε Pr [A(v2 ) = y] ,          1 − 21 f ; that is, the probability that a bit of 1 is preserved
+                                                                  equals the probability that a bit of 0 is preserved. This
+where Range(A) denotes the set of all possible outputs            step is carried out only once for each value v that the
+of the algorithm A.                                               user has.
+                                                                  Step 2: Instantaneous randomized response: Report B2
+   This notion is related to randomized response [24],            such that:
+which is a decades-old technique in social science to col-                                       {
+lect statistical information about embarrassing or illegal                                          p, if B1 [i] = 1,
+                                                                               Pr [B2 [i] = 1] =
+behavior. To report a single bit by random response, one                                            q, if B1 [i] = 0.
+reports the true value with probability p and the(flip of the
+                                                           )      This step is carried out each time a user reports the value.
+                                                        p
+true value with probability 1− p. This satisfies ln 1−p     -     That is, B1 will be perturbed to generate different B2 ’s for
+LDP.                                                              each reporting. RAPPOR’s implementation [5] uses p =
+   Comparing to the setting that requires a trusted data          0.75 and q = 0.25, and is hence also symmetric because
+curator, the local setting offers a stronger level of pro-        p + q = 1.
+tection, because the aggregator sees only perturbed data.           We note that as both steps are symmetric, their com-
+Even if the aggregator is malicious and colludes with all         bined effect can also be modeled by a symmetric ran-
+other participants, one individual’s private data is still        domization. Moreover, we study the problem where each
+protected according to the guarantee of LDP.                      user only reports once. Thus without loss of generality,
+                                                                  we ignore the instantaneous randomized response step
+Problem Definition and Notations. There are n users.
+                                                                  and consider only the permanent randomized response
+Each user j has one value v j and reports once. We use d
+                                                                  when trying to identify effective protocols.
+to denote the size of the domain of the values the users
+have, and [d] to denote the set {1, 2, . . . , d}. Without loss   Aggregation. Let B j be the reported vector of the j-th
+of generality, we assume the input domain is [d]. The             user. Ignoring the Instantaneous randomized response
+most basic goal of Aggregate is frequency estimation,             step, to estimate the number of times i occurs, the aggre-
+i.e., estimate, for a given value i ∈ [d], how many users         gator computes:
+have the value i. Other goals have also been considered
+in the literature. One goal is, when d is very large, iden-                             ∑ j 1{i|B j [i]=1} (i) − 12 f n
+                                                                                c̃(i) =
+tify values in [d] that are frequent, without going through                                          1− f
+every value in [d] [16, 6]. In this paper, we focus on fre-
+                                                                  That is, the aggregator first counts how many time i is re-
+quency estimation. This is the most basic primitive and is
+                                                                  ported by computing ∑ j 1{i|B j [i]=1} (i), which counts how
+a necessary building block for all other goals. Improving
+                                                                  many reported vectors have the i’th bit being 1, and then
+this will improve effectiveness of other protocols.
+                                                                  corrects for the effect of randomization. We use 1X (i) to
+                                                                  denote the indicator function such that:
+2.2    Basic RAPPOR                                                                         {
+                                                                                                1, if i ∈ X,
+                                                                                  1X (i) = 0, if i ∈/ X.
+RAPPOR [13] is designed to enable longitudinal collec-
+tions, where the collection happens multiple times. In-
+deed, Chrome’s implementation of RAPPOR [3] collects              Cost. The communication and computing cost is Θ(d)
+answers to some questions once every 30 minutes. Two              for each user, and Θ(nd) for the aggregator.
+protocols, Basic RAPPOR and RAPPOR, are proposed                  Privacy. Against an adversary who may observe
+in [13]. We first describe Basic RAPPOR.                          multiple
+                                                                     (( transmissions,      this achieves ε-LDP for ε =
+                                                                               )2 )
+                                                                            1
+Encoding. Encode(v) = B0 , where B0 is a length-d bi-             ln
+                                                                        1− 2 f
+                                                                                   , which is ln 9 for f = 1/2 and ln 49 for
+                                                                          1
+nary vector such that B0 [v] = 1 and B0 [i] = 0 for i ̸= v.               2f
+We call this Unary Encoding.                                      f = 1/4.
+Perturbation. Perturb(B0 ) consists of two steps:
+Step 1: Permanent randomized response: Generate B1                2.3    RAPPOR
+such that:
+                                                                  Basic RAPPOR uses unary encoding, and does not scale
+                           1 − 12 f , if B0 [i] = 1,
+                         {
+                                                                  when d is large. To address this problem, RAPPOR uses
+       Pr [B1 [i] = 1] =   1                                      Bloom filters [7]. While Bloom filters are typically used
+                           2 f,       if B0 [i] = 0.
+
+
+
+USENIX Association                                                                 26th USENIX Security Symposium            731
+to encode a set for membership testing, in RAPPOR it is           the r’s row of Φ, i.e., x = Φ[r, v].
+used to encode a single element.                                  Perturbation. Perturb(⟨r, x⟩) = ⟨r, b · c · m · x⟩, where
+Encoding. Encoding uses a set of m hash functions                          {                                       ε
+H = {H1 , H2 , . . . , Hm }, each of which outputs an integer                   1     with probability p = eεe+1 ,
+                                                                       b=
+in [k] = {0, 1, . . . , k − 1}. Encode(v) = B0 , which is k-bit               −1      with probability q = eε 1+1 ,
+binary vector such that                                                  c = (eε + 1)/(eε − 1).
+                  {
+                      1, if   ∃H ∈ H, s.t., H(v) = i,             Aggregation. Given reports ⟨r j , y j ⟩’s, the estimate for
+       B0 [i] =
+                      0,                  otherwise.              i ∈ [d] is given by
+
+                                                                                     c̃(i) = ∑ y j · Φ[r j , i].
+Perturbation. The perturbation process is identical to                                         j
+that of Basic RAPPOR.
+                                                                  The effect is that each user with input value i contributes
+Aggregation. The use of shared hashing creates chal-              c to c̃(i) with probability p, and −c with probability q;
+lenges due to potential collisions. If two values happen          thus the expected contribution is
+to be hashed to the same set of indices, it becomes im-                               ( ε              ) ε
+possible to distinguish them. To deal with this problem,                                  e         1      e +1
+                                                                        (p − q) · c =          −          · ε      = 1.
+RAPPOR introduces the concept of cohorts. The users                                     eε + 1 eε + 1      e −1
+are divided into a number of cohorts. Each cohort uses a
+different set of hash functions, so that the effect of col-       Because of the randomness in Φ, each user with value ̸= i
+lisions is limited to within one cohort. However, par-            contributes to c̃(i) either c or −c, each with probability
+tial collisions, i.e., two values are hashed to overlapping       1/2; thus the expected contribution from all such users
+(though not identical) sets of indices, can still occur and       is 0. Note that each row in the matrix is essentially a
+interfere with estimation. These complexities make the            random hashing function mapping each value in [d] to a
+aggregation algorithm more complicated. RAPPOR uses               single bit. Each user selects such a hash function, uses it
+LASSO and linear regression to estimate frequencies of            to hash her value into one bit, and then perturbs this bit
+values.                                                           using random response.
+                                                                  Cost. A straightforward implementation of the protocol
+Cost. The communication and computing cost is Θ(k)
+                                                                  is expensive. However, the public random matrix Φ does
+for each user. The aggregator’s computation cost is
+                                                                  not need to be explicitly computed. For example, using
+higher than Basic RAPPOR due to the usage of LASSO
+                                                                  a common pseudo-random number generator, each user
+and regression.
+                                                                  can randomly choose a seed to generate a row in the ma-
+Privacy.
+   ((          RAPPOR achieves ε-LDP for ε =                      trix and send the seed in her report. With this technique,
+             )2m )                                                the communication cost is Θ(log m) for each user, and
+         1
+      1− 2 f
+ln     1          . The RAPPOR implementation                     the computation cost is O(d) for computing one row of
+        2f
+                                                                  the Φ. The aggregator needs Θ(dm) to generate Φ, and
+uses m = 2; thus this is ln 81 ≈ 4.39 for f = 1/2 and
+                                                                  Θ(md) to compute the estimations.
+ln 74 ≈ 7.78 for f = 1/4.
+
+                                                                  3   A Framework for LDP Protocols
+2.4    Random Matrix Projection                                   Multiple protocols have been proposed for estimating
+                                                                  frequencies under LDP, and one can envision other pro-
+Bassily and Smith [6] proposed a protocol that uses ran-          tocols. A natural research question is how do they com-
+dom matrix projection. This protocol has an additional            pare with each other? Under the same level of privacy,
+Setup step.                                                       which protocol provides better accuracy in aggregation,
+Setup. The aggregator generates a public matrix Φ ∈               with lower cost? Can we come up with even better ones?
+{− √1m , √1m }m×d uniformly at random. Here m is a pa-            To answer these questions, we define a class of LDP pro-
+                                                                  tocols that we call “pure”.
+rameter determined by the error bound, where the “error”
+                                                                     For a protocol to be pure, we require the specifica-
+is defined as the maximal distance between the estima-
+                                                                  tion of an additional function Support, which maps each
+tion and true frequency of any domain.
+                                                                  possible output y to a set of input values that y “sup-
+Encoding. Encode(v) = ⟨r, x⟩, where r is selected uni-            ports”. For example, in the basic RAPPOR protocol, an
+formly at random from [m], and x is the v’s element of            output binary vector B is interpreted as supporting each
+
+
+
+732    26th USENIX Security Symposium                                                                       USENIX Association
+input whose corresponding bit is 1, i.e., Support(B) =                                  n fi p∗ + n(1 − fi )q∗ − nq∗
+                                                                                       =
+{i | B[i] = 1}.                                                                                    p∗ − q∗
+                                                                                             fi p + q∗ − fi q∗ − q∗
+                                                                                                 ∗
+Definition 3 (Pure LDP Protocols) A protocol given by                                  =n ·
+                                                                                                    p∗ − q∗
+PE and Support is pure if and only if there exist two prob-
+ability values p∗ > q∗ such that for all v1 ,                                          =n fi
+
+            Pr [PE(v1 ) ∈ {y | v1 ∈ Support(y)}] = p∗ ,                  The variance of the estimator in 1 is a valuable indi-
+    ∀v2 ̸=v1 Pr [PE(v2 ) ∈ {y | v1 ∈ Support(y)}] = q .     ∗          cator of an LDP protocol’s accuracy:
+
+A pure protocol is in some sense “pure and simple”. For                Theorem 2 For a pure LDP protocol PE and Support,
+each input v1 , the set {y | v1 ∈ Support(y)} identifies all           the variance of the estimation c̃(i) in (1) is:
+outputs y that “support” v1 , and can be called the support
+set of v1 . A pure protocol requires the probability that                                   nq∗ (1 − q∗ ) n fi (1 − p∗ − q∗ )
+                                                                             Var[c̃(i)] =                +                          (2)
+any value v1 is mapped to its own support set be the same                                    (p∗ − q∗ )2        p∗ − q∗
+for all values. We use p∗ to denote this probability. In
+order to satisfy LDP, it must be possible for a value v2 ̸=            Proof 2 The random variable c̃(i) is the (scaled) sum-
+v1 to be mapped to v1 ’s support set. It is required that              mation of n independent random variables drawn from
+this probability, which we use q∗ to denote, must be the               the Bernoulli distribution. More specifically, n fi (resp.
+same for all pairs of v1 and v2 . Intuitively, we want p∗ to           (1 − fi )n) of these random variables are drawn from
+                                                                       the Bernoulli distribution with parameter p∗ (resp. q∗ ).
+be as large as possible, and q∗ to be as small as possible.
+                                               ∗                       Thus,
+However, satisfying ε-LDP requires that qp∗ ≤ eε .
+                                                                                                ∑ j 1Support(y j ) (i) − nq∗
+                                                                                              ⎡(                      )
+   Basic RAPPOR is pure with p∗ = 1 − 2f and q∗ = 2f .
+                                                                                                                             ⎤
+
+RAPPOR is not pure because there does not exist a suit-                      Var[c̃(i)] = Var ⎣                              ⎦
+                                                                                                        p∗ − q∗
+able q∗ due to collisions in mapping values to bit vec-
+tors. Assuming the use of two hash functions, if v1 is                                  ∑ j Var[1Support(y j ) (i)]
+                                                                                      =
+mapped to [1, 1, 0, 0], v2 is mapped to [1, 0, 1, 0], and v3 is                                 (p∗ − q∗ )2
+mapped to [0, 0, 1, 1], then because [1, 1, 0, 0] differs from                          n fi p (1 − p∗ ) + n(1 − fi )q∗ (1 − q∗ )
+                                                                                              ∗
+                                                                                      =
+[1, 0, 1, 0] by only two bits, and from [0, 0, 1, 1] by four                                           (p∗ − q∗ )2
+bits, the probability that v2 is mapped to v1 ’s support set                            nq (1 − q ) n fi (1 − p∗ − q∗ )
+                                                                                           ∗        ∗
+is higher than that of v3 being mapped to v1 ’s support set.                          =               +                             (3)
+                                                                                        (p∗ − q∗ )2             p∗ − q∗
+   For a pure protocol, let y j denote the submitted value
+by user j, a simple aggregation technique to estimate the
+number of times that i occurs is as follows:
+                                                                          In many application domains, the vast majority of val-
+                       ∑ j 1Support(y j ) (i) − nq∗                    ues appear very infrequently, and one wants to identify
+               c̃(i) =                                          (1)    the more frequent ones. The key to avoid having lots of
+                               p∗ − q∗
+                                                                       false positives is to have low estimation variances for the
+The intuition is that each output that supports i gives an             infrequent values. When fi is small, the variance in (2) is
+count of 1 for i. However, this needs to be normalized,                dominated by the first term. We use Var∗ to denote this
+because even if every input is i, we only expect to see                approximation of the variance, that is:
+n · p∗ outputs that support i, and even if input i never
+occurs, we expect to see n · q∗ supports for it. Thus the                                               nq∗ (1 − q∗ )
+original range of 0 to n is “compressed” into an expected                              Var∗ [c̃(i)] =                               (4)
+                                                                                                         (p∗ − q∗ )2
+range of nq∗ to np∗ . The linear transformation in (1)
+corrects this effect.                                                  We also note that some protocols have the property that
+                                                                       p∗ + q∗ = 1, in which case Var∗ = Var.
+Theorem 1 For a pure LDP protocol PE and Support,                         As the estimation c̃(i) is the sum of many independent
+(1) is unbiased, i.e., ∀i E [ c̃(i) ] = n fi , where fi is the frac-   random variables, its distribution is very close to a nor-
+tion of times that the value i occurs.                                 mal distribution. Thus, the mean and variance of c̃(i)
+                                                                       fully characterizes the distribution of c̃(i) for all prac-
+Proof 1
+                                                                       tical purposes. When comparing different methods, we
+                       ⎡(                      )
+                         ∑ j 1Support(y j ) (i) − nq∗
+                                                      ⎤
+                                                                       observe that fixing ε, the differences are reflected in the
+        E [ c̃(i) ] =E ⎣                              ⎦                constants for the variance, which is where we focus our
+                                 p∗ − q∗                               attention.
+
+
+
+USENIX Association                                                                     26th USENIX Security Symposium               733
+4     Optimizing LDP Protocols                                             – Optimized Local Hashing (OLH) uses opti-
+                                                                             mized choices for the range of hash functions;
+We now cast many protocols that have been proposed                           this is newly proposed in this paper.
+into our framework of “pure” LDP protocols. Casting
+these protocols into the framework of pure protocols en-
+                                                                4.1      Direct Encoding (DE)
+ables us to derive their variances and understand how
+each method’s accuracy is affected by parameters such           One natural method is to extend the binary response
+as domain size, ε, etc. This also enables us to general-        method to the case where the number of input values is
+ize and optimize these protocols and propose two new            more than 2. This is used in [23].
+protocols that improve upon existing ones. More specifi-        Encoding and Perturbing. EncodeDE (v) = v, and
+cally, we will consider the following protocols, which we       Perturb is defined as follows.
+organize by their encoding methods.                                                      {
+                                                                                                   eε
+    • Direct Encoding (DE). There is no encoding. It is a                                   p = eε +d−1 ,        if i = x
+                                                                Pr [PerturbDE (x) = i] =
+      generalization of the Random Response technique.                                      q = 1−p
+                                                                                                d−1   =   ε
+                                                                                                            1
+                                                                                                        e +d−1 , if i ̸= x
+    • Histogram Encoding (HE). An input v is encoded            Theorem 3 (Privacy of DE) The Direct Encoding (DE)
+      as a histogram for the d possible values. The pertur-     Protocol satisfies ε-LDP.
+      bation step adds noise from the Laplace distribution
+      to each number in the histogram. We consider two          Proof 3 For any inputs v1 , v2 and output y, we have:
+      aggregation techniques, SHE and THE.                            Pr [PEDE (v1 ) = y]  p eε /(eε + d − 1)
+                                                                                          ≤ =                 = eε
+         – Summation with Histogram Encoding                          Pr [PEDE (v2 ) = y] q   1/(eε + d − 1)
+           (SHE) simply sums up the reported noisy
+           histograms from all users.                           Aggregation. Let the Support function for DE be
+         – Thresholding with Histogram Encoding                 SupportDE (i) = {i}, i.e., each output value i supports
+           (THE) is parameterized by a value θ ; it inter-      the input i. Then this protocol is pure, with p∗ = p and
+           prets each noisy count above a threshold θ as        q∗ = q. Plugging these values into (4), we have
+           a 1, and each count below θ as a 0.                                                                  d − 2 + eε
+                                                                                  Var∗ [c̃DE (i)] = n ·
+    • Unary Encoding (UE). An input v is encoded as a                                                           (eε − 1)2
+      length-d bit vector, with only the bit corresponding
+                                                                Note that the variance given above is linear in nd. As d
+      to v set to 1. Here two key parameters in perturba-
+                                                                increases, the accuracy of DE suffers. This is because,
+      tion are p, the probability that 1 remains 1 after per-                           eε
+                                                                as d increases, p = eε +d−1  , the probability that a value
+      turbation, and q, the probability that 0 is perturbed
+                                                                is transmitted correctly, becomes smaller. For example,
+      into 1. Depending on their choices, we have two                                                      49
+                                                                when eε = 49 and d = 216 , we have p = 65584    ≈ 0.00075.
+      protocols, SUE and OUE.
+         – Symmetric Unary Encoding (SUE) uses p +              4.2      Histogram Encoding (HE)
+           q = 1; this is the Basic RAPPOR proto-
+           col [13].                                            In Histogram Encoding (HE), an input x ∈ [d] is encoded
+         – Optimized Unary Encoding (OUE) uses op-              using a length-d histogram.
+           timized choices of p and q; this is newly pro-       Encoding. EncodeHE (v) = [0.0, 0.0, · · · , 1.0, · · · , 0.0],
+           posed in this paper.                                 where only the v-th component is 1.0. Two different in-
+                                                                put v values will result in two vectors that have L1 dis-
+    • Local Hashing (LH). An input v is encoded by
+                                                                tance of 2.0.
+      choosing at random H from a universal hash func-
+                                                                                                       ′             ′
+      tion family H, and then outputting (H, H(v)). This                  ( )PerturbHE (B) outputs B such that B [i] =
+                                                                Perturbing.
+      is called Local Hashing because each user chooses         B[i] + Lap ε2 , where Lap (β ) is the Laplace distribution
+                                                                                           1 −|x|/β
+      independently the hash function to use. Here a key        where Pr [Lap (β ) = x] = 2β e       .
+      parameter is the range of these hash functions. De-
+      pending on this range, we have two protocols, BLH         Theorem 4 (Privacy of HE) The Histogram Encoding
+      and OLH.                                                  protocol satisfies ε-LDP.
+
+         – Binary Local Hashing (BLH) uses hash func-           Proof 4 For any inputs v1 , v2 , and output B, we have
+           tions that outputs a single bit. This is equiva-           Pr[B|v1 ]                  Pr[B[i]|v1 ]        [B[v1 ]|v1 ]Pr[B[v2 ]|v1 ]
+                                                                                                                = Pr
+                                                                                     ∏
+           lent to the random matrix projection technique             Pr[B|v2 ]
+                                                                                  = ∏i∈[d] Pr[B[i]|v ]            Pr[B[v ]|v ]Pr[B[v ]|v ]
+                                                                                         i∈[d]            2                1   2        2   2
+           in [6].                                                                ≤ eε/2 · eε/2                 = eε
+
+
+
+734    26th USENIX Security Symposium                                                                                 USENIX Association
+                                                                4.3     Unary Encoding (UE)
+Aggregation: Summation with Histogram Encoding
+(SHE) works as follows: For each value, sum the noisy           Basic RAPPOR, which we described in Section 2.2,
+counts for that value reported by all users. That is,           takes the approach of directly perturbing a bit vector. We
+c̃SHE (i) = ∑ j B j [i], where B j is the noisy histogram re-   now explore this method further.
+ceived from user j. This aggregation method does not            Encoding. Encode(v) = [0, · · · , 0, 1, 0, · · · , 0], a length-d
+provide a Support function and is not pure. We prove its        binary vector where only the v-th position is 1.
+property as follows.                                            Perturbing. Perturb(B) outputs B′ as follows:
+Theorem 5 In SHE, the estimation c̃SHE is unbiased.                                     {
+Furthermore, the variance is
+                                                                            [ ′      ]      p, if B[i] = 1
+                                                                         Pr B [i] = 1 =
+                                                                                           q, if B[i] = 0
+                                        8
+                  Var [ c̃SHE (i) ] = n 2
+                                       ε                        Theorem 6 (Privacy of UE) The Unary Encoding pro-
+Proof 5 Since the added noise is 0-mean; the expected           tocol satisfies ε-LDP for
+value of the sum of all noisy counts is the true count.                                   (          )
+  The Lap (β ) distribution has variance β22 , since β = ε2                                 p(1 − q)
+                                                                                   ε = ln                     (5)
+for each B j [i], then the variance of each such variable                                   (1 − p)q
+is ε82 , and the sum of n such independent variables have
+                                                                Proof 6 For any inputs v1 , v2 , and output B, we have
+variance n ε82 .
+                                                                      Pr [B|v1 ] ∏i∈[d] Pr [B[i]|v1 ]
+Aggregation: Thresholding with Histogram Encod-                                 =                                            (6)
+                                                                      Pr [B|v2 ] ∏i∈[d] Pr [B[i]|v2 ]
+ing (THE) interprets a vector of noisy counts discretely
+by defining                                                                      Pr [B[v1 ] = 1|v1 ] Pr [B[v2 ] = 0|v1 ]
+                                                                                ≤                                            (7)
+                                                                                 Pr [B[v1 ] = 1|v2 ] Pr [B[v2 ] = 0|v2 ]
+             SupportTHE (B) = {v | B[v] > θ }
+                                                                                 p 1−q
+That is, each noise count that is > θ supports the corre-                       = ·         = eε
+                                                                                 q 1− p
+sponding value. This thresholding step can be performed
+either by the user or by the aggregator. It does not ac-        (6) is because each bit is flipped independently, and (7) is
+cess the original value, and thus does not affect the pri-      because v1 and v2 result in bit vectors that differ only in
+vacy guarantee. Using thresholding to provide a Support         locations v1 and v2 , and a vector with position v1 being
+function makes the protocol pure. The probability p∗ and        1 and position v2 being 0 maximizes the ratio.
+q∗ are given by
+           p∗ = 1 − F(θ − 1); q∗ = 1 − F(θ ),                   Aggregation. A reported bit vector is viewed as support-
+                     { 1 εx                                     ing an input i if B[i] = 1, i.e., SupportUE (B) = {i | B[i] =
+        where F(x) =   2e , ε
+                          2         if x < 0                    1}. This yields p∗ = p and q∗ = q. Interestingly, (5)
+                            1 −2x
+                       1− 2e      , if x ≥ 0                    does not fully determine the values of p and q for a fixed
+                                                                ε. Plugging (5) into (4), we have
+Here, F(·) is the cumulative distribution function of
+Laplace distribution. If 0 ≤ θ ≤ 1, then we have                                           nq(1 − q)     nq(1 − q)
+                    1 ε               1 ε                              Var∗ [c̃UE (i)] =             =    ε
+           p∗ = 1 − e 2 (θ −1) ; q∗ = e− 2 θ .                                              (p − q)2   ( e q ε − q)2
+                                                                                                            1−q+e q
+                    2                 2
+                                                                                           ((eε − 1)q + 1)2
+Plugging these values into (4), we have                                               = n· ε                .                (8)
+                                                                                          (e − 1)2 (1 − q)q
+                                       2eεθ /2 − 1
+      Var∗ [c̃HET (i)] = n ·
+                               (1 + eε(θ −1/2) − 2eεθ /2 )2     Symmetric UE (SUE). RAPPOR’s implementation
+                                                                chooses p and q such that p + q = 1; making the treat-
+Comparing SHE and THE. Fixing ε, one can choose                 ment of 1 and 0 symmetric. Combining this with (5), we
+a θ value to minimize the variance. Numerical analy-            have
+sis shows that the optimal θ is in ( 12 , 1), and depends on                       eε/2            1
+ε. When ε is large, θ → 1. Furthermore, Var[c̃THE ] <                         p = ε/2     , q = ε/2
+                                                                                  e +1          e +1
+Var[c̃SHE ] is always true. This means that by thresh-
+olding, one improves upon directly summing up noisy             Plugging these into (8), we have
+counts, likely because thresholding limits the impact of
+                                                                                                           eε/2
+noises of large magnitude. In Section 5, we illustrate the                     Var∗ [c̃SUE (i)] = n ·
+differences between them using actual numbers.                                                          (eε/2 − 1)2
+
+
+
+USENIX Association                                                                26th USENIX Security Symposium            735
+                                                                                        The random matrix-base protocol in [6] (described in
+Optimized UE (OUE). Instead of making p and q sym-                                      Section 2.4), in its very essence, uses a local hashing en-
+metric, we can choose them to minimize (8). Take the                                    coding that maps an input value to a single bit, which is
+partial derivative of (8) with respect to q, and solving q                              then transmitted using randomized response. Below is
+to make the result 0, we get:                                                           the Binary Local Hashing (BLH) protocol, which is log-
+    [
+         ((eε −1)q+1)2
+                          ]           [
+                                              1
+                                                       (
+                                                           (eε −1)2 q 2(eε −1) 1
+                                                                                   )]   ically equivalent to the one in Section 2.4, but is simpler
+∂       (eε −1)2 (1−q)q
+                                  ∂       (eε −1)2
+                                                   ·          1−q + 1−q + q(1−q)
+                              =                                                         and, we hope, better illustrates the essence of the idea.
+            ∂q                                      ∂q                                     Let H be a universal hash function family, such that
+                                      [       (                   )]
+                                        1         ε    2   e2ε  1                       each hash function H ∈ H hashes an input in [d] into one
+                                  ∂ (eε −1)2 · −(e − 1) + 1−q + q
+                              =                                                         bit. The universal property requires that
+                                                                 ∂q
+                                                           e2ε
+                                                  (  )
+                             1                     1                                                                                   1
+                              =                 −      =0                                      ∀x, y ∈ [d], x ̸= y : Pr [H(x) = H(y)] ≤ .
+                         (eε − 1)2 (1 − q)2 q2                                                                      H∈H                2
+                         1−q                      1           1
+                      =⇒       = eε , i.e., q = ε     and p =
+                           q                   e +1           2                         Encoding. EncodeBLH (v) = ⟨H, b⟩, where H ←R H is
+Plugging p = 12 and q = eε 1+1 into (8), we get                                         chosen uniformly at random from H, and b = H(v). Note
+                                                                                        that the hash function H can be encoded using an index
+                                                               4eε                      for the family H and takes only O(log n) bits.
+                      Var∗ [c̃OUE (i)] = n                                    (9)
+                                                            (eε − 1)2                   Perturbing. PerturbBLH (⟨H, b⟩) = ⟨H, b′ ⟩ such that
+
+   The reason why setting p = 12 and q = eε 1+1 is opti-
+                                                                                                             {          ε
+                                                                                                  [ ′    ]       p = eεe+1 , if b = 1
+mal when the true frequencies are small may be unclear                                          Pr b = 1 =
+                                                                                                                q = eε 1+1 , if b = 0
+at first glance; however, there is an intuition behind it.
+When the true frequencies are small, d is large. Recall
+that eε = 1−pp 1−q                                                                      Aggregation. SupportBLH (⟨H, b⟩) = {v | H(v) = b},
+                 q . Setting p and q can be viewed as
+                                                                                        that is, each reported ⟨H, b⟩ supports all values that are
+                                    p
+splitting ε into ε1 + ε2 such that 1−p = eε1 and 1−q
+                                                   q =e .
+                                                          ε2
+                                                                                        hashed by H to b, which are half of the input values. Us-
+That is, ε1 is the privacy budget for transmitting the 1 bit,
+                                                                                        ing this Support function makes the protocol pure, with
+and ε2 is the privacy budget for transmitting each 0 bit.
+                                                                                        p∗ = p and q∗ = 21 p + 21 q = 12 . Plugging the values of p∗
+Since there are many 0 bits and a single 1 bit, it is better
+                                                                                        and q∗ into (4), we have
+to allocate as much privacy budget for transmitting the 0
+bits as possible. In the extreme, setting ε1 = 0 and ε2 = ε                                                                    (eε + 1)2
+means that setting p = 21 .                                                                           Var∗ [c̃BLH (i)] = n ·             .
+                                                                                                                               (eε − 1)2
+
+4.4         Binary Local Hashing (BLH)
+                                                                                        4.5    Optimal Local Hashing (OLH)
+Both HE and UE use unary encoding and have Θ(d)
+communication cost, which is too large for some appli-                                  Once the random matrix projection protocol is cast as
+cations. To reduce the communication cost, a natural                                    binary local hashing, we can clearly see that the encoding
+idea is to first hash the input value into a domain of size                             step loses information because the output is just one bit.
+k < d, and then apply the UE method to the hashed value.                                Even if that bit is transmitted correctly, we can get only
+This is the basic idea underlying the RAPPOR method.                                    one bit of information about the input, i.e., to which half
+However, a problem with this approach is that two val-                                  of the input domain does the value belong. When ε is
+ues may be hashed to the same output, making them in-                                   large, the amount of information loss in the encoding step
+distinguishable from each other during decoding. RAP-                                   dominates that of the random response step. Based on
+POR tries to address this in several ways. One is to use                                this insight, we generalize Binary Local Hashing so that
+more than one hash functions; this reduces the chance of                                each input value is hashed into a value in [g], where g ≥
+a collision. The other is to use cohorts, so that differ-                               2. A larger g value means that more information is being
+ent cohorts use different sets of hash functions. These                                 preserved in the encoding step. This is done, however, at
+remedies, however, do not fully eliminate the potential                                 a cost of more information loss in the random response
+effect of collisions. Using more than one hash functions                                step. As in our analysis of the Direct Encoding method,
+also means that every individual bit needs to be perturbed                              a large domain results in more information loss.
+more to satisfy ε-LDP for the same ε.                                                      Let H be a universal hash function family such that
+   A better approach is to make each user belong to a co-                               each H ∈ H outputs a value in [g].
+hort by herself. We call this the local hashing approach.                               Encoding. Encode(v) = ⟨H, x⟩, where H ∈ H is chosen
+
+
+
+736        26th USENIX Security Symposium                                                                                         USENIX Association
+uniformly at random, and x = H(v).                                  5    Which Protocol to Use
+Perturbing. Perturb(⟨H, x⟩) = (⟨H, y⟩), where
+                         {                                          We have cast most of the LDP protocols proposed in the
+                                   eε
+                           p = eε +g−1 , if x = i                   literature into our framework of pure LDP protocols. Do-
+     ∀i∈[g] Pr [y = i] =           1                                ing so also enables us to generalize and optimize exist-
+                           q = eε +g−1 , if x ̸= i
+                                                                    ing protocols. Now we are able to answer the question:
+Theorem 7 (Privacy of LH) The Local Hashing (LH)                    Which LDP protocol should one use in a given setting?
+Protocol satisfies ε-LDP
+                                                                    Guideline. Table 1 lists the major parameters for the dif-
+Proof 7 For any two possible input values v1 , v2 and any           ferent protocols. Histogram encoding and unary encod-
+output ⟨H, y⟩, we have,                                             ing requires Θ(d) communication cost, and is expensive
+   Pr [⟨H, y⟩|v1 ] Pr [Perturb(H(v1 )) = y]  p                      when d is large. Direct encoding and local hashing re-
+                  =                         ≤ = eε                  quire Θ(log d) or Θ(log n) communication cost, which
+   Pr [⟨H, y⟩|v2 ] Pr [Perturb(H(v2 )) = y] q
+                                                                    amounts to a constant in practice. All protocols other
+Aggregation. Let SupportLH (⟨H, y⟩) = {i | H(i) = y},               than DE have O(n · d) computation cost to estimate fre-
+i.e., the set of values that are hashed into the reported           quency of all values.
+value. This gives rise to a pure protocol with                         Numerical values of the approximate variances using
+                                1    g−1   1                        (4) for all protocols are given in Table 2 and Figure 1 (n =
+            p∗ = p and q∗ =       p+     q= .                       10, 000). Our analysis gives the following guidelines for
+                                g     g    g
+                                                                    choosing protocols.
+Plugging these values into (4), we have the                            • When d is small, more precisely, when d < 3eε + 2,
+                                      (eε − 1 + g)2                       DE is the best among all approaches.
+            Var∗ [c̃LP (i)] = n ·                     .     (10)
+                                    (eε − 1)2 (g − 1)                   • When d > 3eε + 2, and the communication cost
+Optimized LH (OLH)                Now we find the optimal g               Θ(d) is acceptable, one should use OUE. (OUE has
+value, by taking the partial derivative of (10) with respect              the same variance as OLH, but is easier to imple-
+to g.                                                                     ment and faster because no hash functions is used.)
+          −1+g)2                                                        • When d is so large that the communication cost
+   [ ε              ]     [                                     ]
+                                              e2ε
+ ∂ (e(eε −1)2 (g−1)     ∂     g−1
+                            (eε −1)2
+                                     +  1
+                                           ·
+                                       g−1 (eε −1)2 +     2eε
+                                                       (eε −1)2
+                      =                                                   Θ(d) is too large, we should use OLH. It offers
+          ∂g                               ∂g                             the same accuracy as OUE, but has communication
+                             1            1         e2ε                   cost O(log d) instead of O(d).
+                      = ε            −         ·              =0
+                        (e − 1)2 (g − 1)2 (eε − 1)2                 Discussion. In addition to the guidelines, we make the
+                      =⇒ g = eε + 1                                 following observations. Adding Laplacian noises to a
+                                             ε                      histogram is typically used in a setting with a trusted
+When g = eε + 1, we have p∗ = eε +g−1
+                                 e
+                                      = 21 , q∗ = 1g =              data curator, who first computes the histogram from all
+  1
+eε +1 into (8), and                                                 users’ data and then adds the noise. SHE applies it to
+                                           4eε                      each user’s data. Intuitively, this should perform poorly
+               Var∗ [c̃OLH (i)] = n ·             .         (11)    relative to other protocols specifically designed for the
+                                        (eε − 1)2
+                                                                    local setting. However, SHE performs very similarly to
+Comparing OLH with OUE. It is interesting to observe                BLH, which was specifically designed for the local set-
+that the variance we derived for optimized local hashing            ting. In fact, when ε > 2.5, SHE performs better than
+(OLH), i.e., (11) is exactly that we have for optimized             BLH.
+unary encoding (OUE), i.e., (9). Furthermore, the proba-               While all protocols’ variances depend on ε, the rela-
+bility values p∗ and q∗ are also exactly the same. This il-         tionships are different. BLH is least sensitive to change
+lustrates that OLH and OUE are in fact deeply connected.            in ε because binary hashing loses too much information.
+OLH can be viewed as a compact way of implementing                  Indeed, while all other protocols have variance goes to
+OUE. Compared with OUE, OLH has communication                       0 when ε goes to infinity, BLH has variance goes to n.
+cost O(log n) instead of O(d).                                      SHE is slightly more sensitive to change in ε. DE is
+   The fact that optimizing two apparently different en-            most sensitive to change in ε; however, when d is large,
+coding approaches, namely, unary encoding and lo-                   its variance is very high. OLH and OUE are able to better
+cal hashing, results in conceptually equivalent protocol,           benefit from an increase in ε, without suffering the poor
+seems to suggest that this may be optimal (at least when            performance for small ε values.
+d is large). However, whether this is the best possible                Another interesting finding is that when d = 2, the
+                                                                                            ε
+protocol remains an interesting open question.                      variance of DE is (eε e−1)2 , which is exactly 41 of that of
+
+
+
+USENIX Association                                                                  26th USENIX Security Symposium         737
+                                                 DE              SHE          THE (θ = 1)             SUE           OUE              BLH           OLH
+             Communication Cost                O(log d)          O(d)           O(d)                  O(d)          O(d)            O(log n)      O(log n)
+                                                   d−2+eε         8              2eε/2 −1               eε/2           4eε          (eε +1)2            4eε
+                    Var[c̃(i)]/n                   (eε −1)2       ε2            (eε/2 −1)2           (eε/2 −1)2     (eε −1)2        (eε −1)2         (eε −1)2
+
+
+                          Table 1: Comparison of communication cost and variances for different methods.
+
+                    DE (d = 2)         DE (d = 32)              DE (d = 210 )         SHE            THE (θ = 1)         SUE            OUE          BLH        OLH
+    ε = 0.5           3.92               75.20                    2432.40             32.00            19.44             15.92          15.67        16.67      15.67
+    ε = 1.0           0.92               11.08                     347.07              8.00             5.46             3.92           3.68         4.68       3.68
+    ε = 2.0           0.18                0.92                     25.22               2.00             1.50             0.92           0.72         1.72       0.72
+    ε = 4.0           0.02                0.03                      0.37               0.50             0.34             0.18           0.08         1.08       0.08
+
+                                       Table 2: Numerical values of Var[c̃(i)]/n for different methods.
+
+
+                           DE(d=2)                   DE(d=128)                                            DE            SUE             BLH
+                           DE(d=4)                  DE(d=2048)                                           SHE            OUE             OLH
+                          DE(d=16)                        OUE                                107
+            107
+                                                                                             106
+            106
+                                                                                             105
+            105
+                                                                                       Var
+      Var
+
+
+
+
+            104                                                                              104
+
+            103                                                                              103
+
+            102                                                                              102
+              0.5     1    1.5     2     2.5         3    3.5    4      4.5     5              0.5     1     1.5    2     2.5       3    3.5     4      4.5     5
+                                               ε                                                                                ε
+                                       (a) Vary ε                                                              (b) Vary ε (fixing d = 210 )
+
+
+                                        Figure 1: Numerical values of Var[c̃(i)] for different methods.
+
+
+OUE and OLH, whose variances do not depend on d. In-                                    of variances match the empirically measured squared er-
+tuitively, it is easier to transmit a piece of information                              rors. For the empirical data, we issue queries using the
+when it is binary, i.e., d = 2. As d increases, one needs                               protocols and measure the average of the squared errors,
+to “pay” for this increase in source entropy by having                                  namely, d1 ∑i∈[d] [c̃(i) − n fi ]2 , where fi is the fraction of
+higher variance. However, it seems that there is a cap on                               users taking value i. We run queries for all i values and
+the “price” one must pay no matter how large d is, i.e.,                                repeat for ten times. We then plot the average and stan-
+OLH’s variance does not depend on d and is always 4                                     dard deviation of the squared error. We use synthetic data
+times that of DE with d = 2. There may exist a deeper                                   generated by following the Zipf’s distribution (with dis-
+reason for this rooted in information theory. Exploring                                 tribution parameter s = 1.1 and n = 10, 000 users), simi-
+these questions is beyond the scope of this paper.                                      lar to experiments in [13].
+                                                                                           Figure 2 gives the empirical and analytical results for
+                                                                                        all methods. In Figures 2(a) and 2(b), we fix ε = 4
+6     Experimental Evaluation                                                           and vary the domain size. For sufficiently large d (e.g.,
+                                                                                        d ≥ 26 ), the empirical results match very well with the
+We empirically evaluate these protocols on both syn-                                    analytical results. When d < 26 , the analytical variance
+thetic and real-world datasets. All experiments are per-                                tends to underestimate the variance, because in (4) we
+formed ten times and we plot the mean and standard de-                                  ignore the fi terms. Standard deviation of the measured
+viation.                                                                                squared error from different runs also decreases when the
+                                                                                        domain size increases. In Figures 2(c) and 2(d), we fix
+6.1         Verifying Correctness of Analysis                                           the domain size to d = 210 and vary the privacy budget.
+                                                                                        We can see that the analytical results match the empirical
+The conclusions we drew above are based on analyti-                                     results for all ε values and all methods.
+cal variances. We now show that our analytical results                                     In practice, since the group size g of OLH can only be
+
+
+
+738         26th USENIX Security Symposium                                                                                                     USENIX Association
+                        Empirical DE                       Analytical DE                                Empirical SHE                      Analytical SHE
+                       Empirical SUE                      Analytical SUE                                Empirical BLH                      Analytical BLH
+              5        Empirical OUE                      Analytical OUE                       5        Empirical OLH                      Analytical OLH
+            10                                                                               10
+
+
+            104                                                                              104
+      Var
+
+
+
+
+                                                                                       Var
+            103                                                                              103
+
+
+            102 2                                                                            102 2
+                 2      24    26       28     210         212      214   216     218              2      24    26       28     210         212      214   216     218
+                                               d                                                                                d
+                               (a) Vary d (fixing ε = 4)                                                        (b) Vary d (fixing ε = 4)
+
+                        Empirical DE                       Analytical DE                                Empirical SHE                      Analytical SHE
+                       Empirical SUE                      Analytical SUE                                Empirical BLH                      Analytical BLH
+                       Empirical OUE                      Analytical OUE                                Empirical OLH                      Analytical OLH
+            107                                                                              107
+
+            106                                                                              106
+
+            105                                                                              105
+      Var
+
+
+
+
+                                                                                       Var
+            104                                                                              104
+
+            103                                                                              103
+
+            102                                                                              102
+                 0.5    1    1.5   2        2.5       3      3.5     4     4.5    5               0.5    1    1.5   2        2.5       3      3.5     4     4.5    5
+                                                  ε                                                                                ε
+                              (c) Vary ε (fixing d = 210 )                                                     (d) Vary ε (fixing d = 210 )
+
+
+                                              Figure 2: Comparing empirical and analytical variance.
+
+
+integers, we round g = eε + 1 to the nearest integer.                                   6.2.1           Accuracy on Frequent Values
+                                                                                        One goal of estimating a distribution is to find out the fre-
+                                                                                        quent values and accurately estimate them. We run dif-
+6.2         Towards Real-world Estimation                                               ferent methods to estimate the distribution of the Kosarak
+                                                                                        dataset. After the estimation, we issue queries for the
+We run OLH, BLH, together with RAPPOR, on real
+                                                                                        30 most frequent values in the original dataset. We then
+datasets. The goal is to understand how does each pro-
+                                                                                        calculate the average squared error of the 30 estimations
+tocol perform in real world scenarios and how to inter-
+                                                                                        produced by different methods. Figure 3 shows the re-
+pret the result. Note that RAPPOR does not fall into
+                                                                                        sult. We try RAPPOR with both 8 cohorts (RAP(8)) and
+the pure framework of LDP protocols so we cannot use
+                                                                                        16 cohorts (RAP(16)). It can be seen that when ε > 1,
+Theorem 2 to obtain the variance analytically. Instead,
+                                                                                        OLH starts to show its advantage. Moreover, variance
+we run experiments to examine its performance empiri-
+                                                                                        of OLH decreases fastest among the four. Due to the
+cally. Following the setting of Erlingsson et al. [13], we
+                                                                                        internal collision caused by Bloom filters, the accuracy
+use a 128-bit Bloom filter, 2 hash functions and 8/16 co-
+                                                                                        of RAPPOR does not benefit from larger ε. We also per-
+horts in RAPPOR. In order to vary ε, we tweak the f
+                                                                                        form this experiment on different datasets, and the results
+value. The instantaneous randomization process is omit-
+                                                                                        are similar.
+ted. We implement RAPPOR in Python. The regression
+part, which RAPPOR introduces to handle the collisions
+in the Bloom filter, is implemented using Scikit-learn li-                              6.2.2           Distinguish True Counts from Noise
+brary [4].
+                                                                                        Although there are noises, infrequent values are still un-
+Datasets. We use the Kosarak dataset [2], which con-                                    likely to be estimated to be frequent. Statistically, the fre-
+tains the click stream of a Hungarian news website.                                     quent estimates are more reliable, because the probabil-
+There are around 8 million click events for 41, 270 dif-                                ity it is generated from an infrequent value is quite low.
+ferent pages. The goal is to estimate the popularity of                                 However, for the infrequent estimates, we don’t know
+each page, assuming all events are reported.                                            whether it comes from an originally infrequent value or
+
+
+
+USENIX Association                                                                                              26th USENIX Security Symposium                          739
+                            OLH           RAP(8)                       old; thus more values can be detected reliably.
+          10                BLH          RAP(16)
+        10                                                             Number of Reliable Estimation. We run different pro-
+        10   9                                                         tocols using the significance threshold Ts on the Kosarak
+                                                                       dataset. Note that Ts will change as ε changes. We define
+        108                                                            a true (false) positive as a value that has frequency above
+  Var
+
+
+
+
+        107                                                            (below) the threshold, and is estimated to have frequency
+                                                                       above the threshold. In Figure 4, we show the number of
+        106
+                                                                       true positives versus ε. As ε increases, the number of
+        105                                                            true positives increases. When ε = 4, RAPPOR can out-
+                 0.5    1   1.5    2   2.5     3   3.5   4   4.5   5   put 75 true positives, BLH can only output 36 true posi-
+                                        ε
+                                                                       tives, but OLH can output nearly 200 true positives. We
+             Figure 3: Average squared error, varying ε.               also notice that the output sizes are similar for RAPPOR
+                                                                       and OLH, which indicates that OLH gives out very few
+                                                                       false positives compared to RAPPOR. The cohort size
+                            OLH               RAP(8)
+                            BLH              RAP(16)                   does not affect much in this setting.
+         450
+         400
+         350                                                           6.2.3   On Information Quality
+         300
+         250                                                           Now we test both the number of true positives and false
+  TP
+
+
+
+
+         200                                                           positives, varying the threshold. We run OLH, BLH and
+         150
+         100
+                                                                       RAPPOR on the Kosarak dataset.
+          50                                                              As we can see in Figure 5(a), fixing a threshold, OLH
+           0                                                           and BLH performs similarly in identifying true positives,
+                  0.5   1    1.5   2   2.5     3   3.5   4   4.5   5
+                                        ε                              which is as expected, because frequent values are rare,
+                                                                       and variance does not change much the probability it is
+Figure 4: Number of true positives, varying ε, using                   identified. RAPPOR performs slightly worse because of
+significance threshold. The dashed line corresponds to                 the Bloom filter collision.
+the average number of items identified.                                   As for the false positives, as shown in Figure 5(b), dif-
+                                                                       ferent protocols perform quite differently in eliminating
+                                                                       false positives. When fixing Ts to be 5, 000, OLH pro-
+a zero-count value. Therefore, after getting the estima-               duces tens of false positives, but BLH will produce thou-
+tion, we need to choose which estimate to use, and which               sands of false positives. The reason behind this is that,
+to discard.                                                            for the majority of infrequent values, their estimations
+Significance Threshold. In [13], the authors propose                   are directly related to the variance of the protocol. A
+to use the significance threshold. After the estimation,               protocol with a high variance means that more infrequent
+all estimations above the threshold are kept, and those                values will become frequent during estimation. As a re-
+below the threshold Ts are discarded.                                  sult, because of its smallest Var∗ , OLH produces the least
+                                                                       false positives while generating the most true positives.
+                         (     α )√ ∗
+               Ts = Φ−1 1 −         Var ,
+                               d
+                                                                       7   Related Work
+where d is the domain size, Φ−1 is the inverse of the
+cumulative density function of standard normal distri-                 The notion of differential privacy and the technique of
+bution, and the term inside the square root is the vari-               adding noises sampled from the Laplace distribution
+ance of the protocol. Roughly speaking, the parame-                    were introduced in [11]. Many algorithms for the central-
+ter α controls the number of values that originally have               ized setting have been proposed. See [12] for a theoreti-
+low frequencies but estimated to have frequencies above                cal treatment of these techniques, and [19] for a treatment
+the threshold (also known as false positives). We use                  from a more practical perspective. It appears that only
+α = 0.05 in our experiment.                                            algorithms for the LDP settings have seen real world de-
+   For the values whose estimations are discarded, we                  ployment. Google deployed RAPPOR [13] in Chrome,
+don’t know for sure whether they have low or zero fre-                 and Apple [1] also uses similar methods to help with pre-
+quencies. Thus, a common approach is to assign the re-                 dictions of spelling and other things.
+maining probability to each of them uniformly.                            State of the art protocols for frequency estimation un-
+   Recall Var∗ is the term we are trying to minimize. So a             der LDP are RAPPOR by Erlingsson et al. [13] and Ran-
+protocol with a smaller variance will have a lower thresh-             dom Matrix Projection (BLH) by Bassily and Smith [6],
+
+
+
+740          26th USENIX Security Symposium                                                                  USENIX Association
+                       OLH             RAP(8)                                            OLH             RAP(8)
+                       BLH            RAP(16)                        4                   BLH            RAP(16)
+          160                                                      10
+          140
+          120                                                        3
+                                                                   10
+          100
+                                                                   102
+     TP
+
+
+
+
+                                                              FP
+           80
+           60
+           40                                                      101
+           20
+            0                                                      100
+            5000        10000       15000          20000                5000              10000           15000            20000
+                             Threshold                                                            Threshold
+                    (a) Number of True Positives                                       (b) Number of False Positives
+
+
+Figure 5: Results on Kosarak dataset. The y axes are the number of identified hash values that is true/false positive.
+The x axes are the threshold. We assume ε = 4.
+
+
+which we have presented in Section 2 and compared with        flect dependency on d. Mutual information considers
+in detail in the paper. These protocols use ideas from        only a single user’s encoding, and not aggregation ac-
+earlier work [20, 9]. Our proposed Optimized Unary            curacy. For example, both global and local hashing have
+Encoding (OUE) protocol builds upon the Basic RAP-            exactly the same mutual information characteristics, but
+POR protocol in [13]; and our proposed Optimized Lo-          they have very different accuracy for frequency estima-
+cal Hashing (OLH) protocol is inspired by BLH in [6].         tion, because of collisions in global hashing. Neverthe-
+Wang et al. [23] uses both generalized random response        less, it is found that for very large ε’s, Direct Encoding
+(Section 4.1) and Basic RAPPOR for learning weighted          is optimal, and for very small ε’s, BLH is optimal. This
+histogram. Some researchers use existing frequency esti-      is consistent with our findings. However, analysis in [18]
+mation protocols as primitives to solve other problems in     did not lead to generalization and optimization of binary
+LDP setting. For example, Chen et al. [8] uses BLH [6]        local hashing, nor does it provide concrete suggestion on
+to learn location information about users. Qin et al. [22]    which method to use for a given ε and d value.
+use RAPPOR [13] and BLH [6] to estimate frequent
+items where each user has a set of items to report. These
+can benefit from the introduction of OUE and OLH in           8          Discussion
+this paper.
+   There are other interesting problems in the LDP set-       On answering multiple questions. In the setting of tra-
+ting beyond frequency estimation. In this paper we do         ditional DP, the privacy budget is split when answering
+not study them. One problem is to identify frequent val-      multiple queries. In the local setting, previous work fol-
+ues when the domain of possible input values is very          low this tradition and let the users split privacy budget
+large or even unbounded, so that one cannot simply ob-        evenly and report on multiple questions. Instead, we sug-
+tain estimations for all values to identify which ones are    gest partitioning the users randomly into groups, and let-
+frequent. This problem is studied in [17, 6, 16]. Another     ting each group of users answer a separate question. Now
+problem is estimating frequencies of itemsets [14, 15].       we compare the utilities by these approaches.
+Nguyên et al. [21] studied how to report numerical an-          Suppose there are Q ≥ 2 questions. We calculate vari-
+swers (e.g., time of usage, battery volume) under LDP.        ances on one question. Since there are different number
+When these protocols use frequency estimation as a            of users in the two cases (n versus n/Q), we normalize
+building block (such as in [16]), they can directly ben-      the estimations into the range from 0 to 1. In OLH, the
+                                                                                                         ε
+efit from results in this paper. Applying insights gained     variance is σ 2 = Var∗ [c̃OLH (i)/n] = ε 4e 2 .
+                                                                                                                   (e −1) ·n
+in our paper to better solve these problems is interesting      When partitioning the users, n/Q users answer one
+future work.                                                                                ε
+                                                              question, rendering σ12 = ε4Qe 2 ; when privacy bud-
+   Kairouz et al. [18] study the problem of finding the                                                (e −1) ·n
+
+optimal LDP protocol for two goals: (1) hypothesis test-      get is split, ε/Q is used for one question, we have σ22 =
+                                                                        4eε/Q
+ing, i.e., telling whether the users’ inputs are drawn from                     2   . We want to show σ12 < σ22 :
+                                                               (eε/Q −1) ·n
+distribution P0 or P1 , and (2) maximize mutual informa-
+tion between input and output. We note that these goals
+are different from ours. Hypothesis testing does not re-                            σ22 − σ12
+
+
+
+USENIX Association                                                                       26th USENIX Security Symposium            741
+               (                           )
+           4          eε/Q        Qeε                          [2] Kosarak. http://fimi.ua.ac.be/data/.
+         =                  )2 − ε
+           n                    (e − 1)2
+                   (
+                    eε/Q − 1                                   [3] Rappor   online description.                 http:
+                 4eε/Q                                             //www.chromium.org/developers/
+         = (         )2                                            design-documents/rappor.
+          n eε/Q − 1 (eε − 1)2
+                                                               [4] Scikit-learn. http://scikit-learn.org/.
+           [                   (     )2 ]
+              ε     2    ε−ε/Q   ε/Q
+          · (e − 1) − Qe        e −1
+                                                               [5] Source code of rappor in chromium. https://cs.
+The first term is always greater than zero since ε > 0. For        chromium.org/chromium/src/components/
+the second term, we define eε/Q = z, and write it as:              rappor/public/rappor_parameters.h.
+
+     (zQ − 1)2 − QzQ−1 (z − 1)2                                [6] BASSILY, R., AND S MITH , A. Local, private, ef-
+                                                                   ficient protocols for succinct histograms. In Pro-
+    =(z − 1)2 · (zQ−1 + zQ−2 + . . . + 1)2 − QzQ−1 > 0
+               [                                  ]
+                                                                   ceedings of the Forty-Seventh Annual ACM on Sym-
+                                                                   posium on Theory of Computing (2015), ACM,
+   Therefore, σ12 is always smaller than σ22 . Thus utility
+                                                                   pp. 127–135.
+of partitioning users is better than splitting privacy bud-
+get.                                                           [7] B LOOM , B. H. Space/time trade-offs in hash cod-
+Limitations. The current work only considers the frame-            ing with allowable errors. Commun. ACM 13, 7
+work of pure LDP protocols. It is not known whether a              (July 1970), 422–426.
+protocol that is not pure will produce more accurate re-
+                                                               [8] C HEN , R., L I , H., Q IN , A. K., K A -
+sult or not. Moreover, current protocols can only handle
+                                                                   SIVISWANATHAN , S. P., AND J IN , H. Private
+the case where the domain is limited, or a dictionary is
+                                                                   spatial data aggregation in the local setting. In
+available. Other techniques are needed when the domain
+                                                                   32nd IEEE International Conference on Data
+size is very big.
+                                                                   Engineering, ICDE 2016, Helsinki, Finland, May
+                                                                   16-20, 2016 (2016), pp. 289–300.
+9     Conclusion
+                                                               [9] D UCHI , J. C., J ORDAN , M. I., AND WAIN -
+In this paper, we study frequency estimation in the Local          WRIGHT, M. J. Local privacy and statistical mini-
+Differential Privacy (LDP) setting. We have introduced a           max rates. In FOCS (2013), pp. 429–438.
+framework of pure LDP protocols together with a simple
+                                                              [10] DWORK , C. Differential privacy. In ICALP (2006),
+and generic aggregation and decoding technique. This
+                                                                   pp. 1–12.
+framework enables us to analyze, compare, generalize,
+and optimize different protocols, significantly improving     [11] DWORK , C., M C S HERRY, F., N ISSIM , K., AND
+our understanding of LDP protocols. More concretely,               S MITH , A. Calibrating noise to sensitivity in pri-
+we have introduced the Optimized Local Hashing (OLH)               vate data analysis. In TCC (2006), pp. 265–284.
+protocol, which has much better accuracy than previous
+frequency estimation protocols satisfying LDP. We pro-        [12] DWORK , C., AND ROTH , A. The algorithmic
+vide a guideline as to which protocol to choose in differ-         foundations of differential privacy. Foundations
+ent scenarios. Finally we demonstrate the advantage of             and Trends in Theoretical Computer Science 9, 34
+the OLH in both synthetic and real-world datasets.                 (2014), 211–407.
+                                                              [13] E RLINGSSON , Ú., P IHUR , V., AND KOROLOVA ,
+10     Acknowledgment                                              A. Rappor: Randomized aggregatable privacy-
+                                                                   preserving ordinal response. In Proceedings of the
+This paper is based on work supported by the United                2014 ACM SIGSAC conference on computer and
+States National Science Foundation under Grant No.                 communications security (2014), ACM, pp. 1054–
+1640374.                                                           1067.
+                                                              [14] E VFIMIEVSKI , A., G EHRKE , J., AND S RIKANT,
+References                                                         R. Limiting privacy breaches in privacy preserving
+                                                                   data mining. In PODS (2003), pp. 211–222.
+ [1] Apples differential privacy is about col-
+     lecting your     databut  not  your  data. [15] E VFIMIEVSKI , A., S RIKANT, R., AGRAWAL , R.,
+     https://www.wired.com/2016/06/                  AND G EHRKE , J. Privacy preserving mining of as-
+     apples-differential-privacy-collecting-data/. sociation rules. In KDD (2002), pp. 217–228.
+
+
+
+742    26th USENIX Security Symposium                                                             USENIX Association
+[16] FANTI , G., P IHUR , V., AND E RLINGSSON , Ú.            A.1    Effect of Cohort Size
+     Building a rappor with the unknown: Privacy-
+                                                               In [13], the authors did not identify the best cohort size
+     preserving learning of associations and data dictio-
+                                                               to use. Intuitively, if there are too few cohorts, many val-
+     naries. Proceedings on Privacy Enhancing Tech-
+                                                               ues will be hashed to be the same in the Bloom filter,
+     nologies (PoPETS) issue 3, 2016 (2016).
+                                                               making it difficult to distinguish these values. If there
+[17] H SU , J., K HANNA , S., AND ROTH , A. Dis-               are more cohorts, each cohort cannot convey enough use-
+     tributed private heavy hitters. In International Col-     ful information. Here we try to test what cohort size we
+     loquium on Automata, Languages, and Program-              should use. We generate 10 million values following the
+     ming (2012), Springer, pp. 461–472.                       Zipf’s distribution (with parameter 1.5), but only use the
+                                                               first 128 most frequent values because of memory limita-
+[18] K AIROUZ , P., O H , S., AND V ISWANATH , P. Ex-          tion caused by regression part of RAPPOR. We then run
+     tremal mechanisms for local differential privacy. In      RAPPOR using 8, 16, 32, and 64, and 128 cohorts. We
+     Advances in neural information processing systems         measure the average squared errors of queries about the
+     (2014), pp. 2879–2887.                                    top 10 values, and the results are shown in Figure 7. As
+                                                               we can see, more cohorts does not necessarily help lower
+[19] L I , N., LYU , M., S U , D., AND YANG , W. Differ-       the squared error because the reduced probability of col-
+     ential Privacy: From Theory to Practice. Synthe-          lision within each cohort. But it also has the disadvan-
+     sis Lectures on Information Security, Privacy, and        tage that each cohort may have insufficient information.
+     Trust. Morgan Claypool, 2016.                             It can be seen OLH still performs best.
+[20] M ISHRA , N., AND S ANDLER , M. Privacy via
+     pseudorandom sketches. In Proceedings of the              A.2    Performance on Synthetic Datasets
+     twenty-fifth ACM SIGMOD-SIGACT-SIGART sym-
+                                                               In Figure 6, we test performance of different methods on
+     posium on Principles of database systems (2006),
+                                                               synthetic datasets. We generate 10 million points follow-
+     ACM, pp. 143–152.
+                                                               ing a normal distribution (rounded to integers, with mean
+[21] N GUY ÊN , T. T., X IAO , X., YANG , Y., H UI , S. C.,   500 and standard deviation 10) and a Zipf’s distribution
+     S HIN , H., AND S HIN , J. Collecting and analyzing       (with parameter 1.5). The values range from 0 to 1000.
+     data from smart device users with local differential      We then test the average squared errors on the most fre-
+     privacy. arXiv preprint arXiv:1606.05053 (2016).          quent 100 values. It can be seen that different methods
+                                                               perform similarly in different distributions. RAPPOR us-
+[22] Q IN , Z., YANG , Y., Y U , T., K HALIL , I., X IAO ,     ing 16 cohorts performs better than BLH. This is be-
+     X., AND R EN , K. Heavy hitter estimation over set-       cause when the number of cohort is enough, each user in
+     valued data with local differential privacy. In CCS       a sense has his own hash functions. This can be viewed
+     (2016).                                                   as a kind of local hashing function. When we only test
+                                                               the top 10 values instead of top 50, RAP(16) and BLH
+[23] WANG , S., H UANG , L., WANG , P., D ENG , H.,            perform similarly. Note that OLH performs best among
+     X U , H., AND YANG , W. Private weighted his-             all distributions.
+     togram aggregation in crowdsourcing. In Interna-
+     tional Conference on Wireless Algorithms, Systems,
+     and Applications (2016), Springer, pp. 250–261.           A.3    Performance on Rockyou Dataset
+                                                               We run experiments on the Rockyou dataset, which con-
+[24] WARNER , S. L. Randomized response: A sur-
+                                                               tains 21 million users’ password in plaintext. We first
+     vey technique for eliminating evasive answer bias.
+                                                               hash the plaintext into 20 bits, and use OLH, BLH, and
+     Journal of the American Statistical Association 60,
+                                                               Basic RAPPOR (also known as SUE in our framework)
+     309 (1965), 63–69.
+                                                               to test all hashed values. It can be seen that OLH per-
+                                                               forms best in all settings, and basic RAPPOR outper-
+A    Additional Evaluation                                     forms BLH consistently. When ε = 4, and threshold is
+                                                               6000, OLH can recover around 50 true frequent hashes
+This section provides additional experimental evaluation       and 10 of false positives, which is 4 and 2 magnitudes
+results. We first try to measure average squared variance      smaller than BLH and basic RAPPOR, respectively. The
+on other datasets. Although RAPPOR did not specify a           advantage is not significant when ε is small, since the
+particular optimal setting, we vary the number of cohorts      variance difference is small.
+and find differences. In the end, we evaluate different
+methods on the Rockyou dataset.
+
+
+
+USENIX Association                                                             26th USENIX Security Symposium         743
+                                   OLH             RAP(8)                                               OLH             RAP(8)
+                 9                 BLH            RAP(16)                                9              BLH            RAP(16)
+               10                                                                      10
+
+                 8                                                                       8
+               10                                                                      10
+         Var
+
+
+
+
+                                                                                 Var
+               107                                                                     107
+
+               106                                                                     106
+
+               105                                                                     105
+                       0.5     1    1.5    2    2.5   3   3.5      4   4.5   5               0.5   1     1.5   2   2.5    3   3.5     4   4.5   5
+                                                 ε                                                                  ε
+                                   (a) Zipf’s Top 100 Values                                           (b) Normal Top 100 Values
+
+                                   OLH             RAP(8)                                               OLH             RAP(8)
+                                   BLH            RAP(16)                                               BLH            RAP(16)
+               109                                                                     109
+
+               108                                                                     108
+         Var
+
+
+
+
+                                                                                 Var
+               107                                                                     107
+
+               106                                                                     106
+
+               105                                                                     105
+                       0.5     1    1.5    2    2.5   3   3.5      4   4.5   5               0.5   1     1.5   2   2.5    3   3.5     4   4.5   5
+                                                 ε                                                                  ε
+                                   (c) Zipf’s Top 50 Values                                             (d) Zipf’s Top 10 Values
+
+
+Figure 6: Average squared errors on estimating a distribution of 10 million points. RAPPOR is used with 128-bit
+long Bloom filter and 2 hash functions.
+
+
+
+
+                RAP(8)                RAP(32)             RAP(128)
+               RAP(16)                RAP(64)                OLH
+        109
+
+        108
+  Var
+
+
+
+
+        107
+
+        106
+
+        105
+                     0.5   1   1.5     2    2.5   3    3.5     4   4.5   5
+                                             ε
+
+Figure 7: Average squared error on estimating a normal
+distribution of 1 million points. RAPPOR is used with
+128-bit long Bloom filter and 2 hash functions.
+
+
+
+
+744            26th USENIX Security Symposium                                                                                      USENIX Association
+              OLH                  BLH            BasicRAP                         OLH                  BLH            BasicRAP
+         80                                                                  106
+
+         70                                                                  105
+
+                                                                             104
+         60
+                                                                             103
+    TP
+
+
+
+
+                                                                        FP
+         50
+                                                                             102
+         40
+                                                                             101
+
+         30                                                                  100
+               5000          5500     6000               6500                      5000           5500      6000               6500
+                                Threshold                                                            Threshold
+                    (a) Number of True Positives ε = 4                               (b) Number of False Positives ε = 4
+
+              OLH                  BLH            BasicRAP                         OLH                  BLH            BasicRAP
+         9                                                                   105
+
+         8                                                                   104
+
+         7                                                                   103
+    TP
+
+
+
+
+                                                                        FP
+
+
+
+
+         6                                                                   102
+
+         5                                                                   101
+
+         4                                                                   100
+                    15000              20000                    25000                    15000              20000                     25000
+                                 Threshold                                                            Threshold
+                    (c) Number of True Positives ε = 2                               (d) Number of False Positives ε = 2
+
+              OLH                  BLH            BasicRAP                         OLH                  BLH            BasicRAP
+         9                                                                   105
+         8
+                                                                             104
+         7
+         6                                                                   103
+    TP
+
+
+
+
+                                                                        FP
+
+
+
+
+         5
+         4                                                                   102
+         3
+                                                                             101
+         2
+         1                                                                   100
+                20000         30000    40000         50000                           20000         30000    40000          50000
+                                Threshold                                                            Threshold
+                    (e) Number of True Positives ε = 1                                   (f) Number of False Positives ε = 1
+
+
+Figure 8: Results on Rockyou dataset for ε = 4, 2 and 1. The y axes are the number of identified hash values that is
+true/false positive. The x axes are the threshold.
+
+
+
+
+USENIX Association                                                                            26th USENIX Security Symposium                  745
+

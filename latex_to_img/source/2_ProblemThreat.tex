@@ -1,0 +1,108 @@
+% Requires:
+% \begin{itemize}
+%     \item Problem Setup: A crisp and clear problem statement. Your problem statement should be captured as clearly as possible using mathematics. 
+%     \item Threat Model: Security assumption/model. Which information do you want to protect...
+% \end{itemize}
+
+
+
+
+
+
+\subsection{Problem Setup:}
+Because many protocols for frequency estimation had already appeared in the literature—each differing in how they perform the steps of \textbf{\texttt{Encode}}, \textbf{\texttt{Perturb}}, and \textbf{\texttt{Aggregate}}—a unified framework was needed to describe them consistently. Such a unified view, known as pure LDP, was introduced in \cite{wang2017locally} and is defined below.
+
+\begin{definition}[\textbf{Pure LDP}]
+    Consider a function $Support$ which maps each possible $y$ to a set of input values that $y$ supports. A protocol given by $PE$ and $Support$ is pure iff for all $v_1$
+    \begin{align*}
+        Pr[PE(v_1) \in \{ y | v_1 \in Support(y) \}] &= p^*, \\
+        \forall_{v_2 \neq v_1} Pr[PE(v_2) \in \{ y | v_1 \in Support(y) \}] &= q^*
+    \end{align*}
+    such that $p^* > q^*$. Intuitively, the probability that the perturbed encoded value of $v_1$ mapped to its own support set should be more than it is mapped to a different input's support set.
+\end{definition}
+
+
+
+
+
+A nice organization of protocols can be obtained by casting these to the framework of pure LDP protocols, based on how each protocol encodes an input:
+\begin{itemize}[topsep=0pt, partopsep=0pt, itemsep=0pt] 
+    \item \textbf{Direct Encoding}: When no encoding is applied.
+
+
+    \item \textbf{Histogram Encoding}: An input $v$ is encoded as histogram for $[d]$ possible values. Adding noise from Laplace Distribution becomes the perturbation phase.
+
+
+    \item \textbf{Unary Encoding}: An input $v$ is encoded as a length-$d$ vector. Perturbation is done by parameters $p^*$ and $q^*$.
+
+
+    \item \textbf{Local Hashing}: An input $v$ is encoded by choosing at random a hash function $H$ from a universe of hash function family $\mathcal{H}$, and then computing $(H, H(v))$. Perturbation is done by parameters $p^*$ and $q^*$.
+\end{itemize}
+
+
+
+
+
+In this work, we consider the \textbf{kRR}, \textbf{OUE}, and \textbf{OLH} protocols—representing Direct Encoding, Unary Encoding, and Local Hashing, respectively—for comparison, and we propose attack strategies for each. Below, we provide a precise formulation of the attack problem we consider.
+
+\begin{problem}{Attack on Frequency Estimation under Pure LDP}{attack}
+    In this work, we consider \textbf{targeted} attacks (as opposed to untargeted attacks), and the goal of the attack is to increase the estimated frequency of the attacker-chosen target items. Specifically, we assume the system has $n$ genuine users, and the attacker can inject $m$ fake users (total users = $n+m$). The attacker considers a set $T = \{ t_1, t_2, \dots, t_r \}$ of $r$ target items. The goal is to increase the frequency of each $t_i$.
+\end{problem}
+
+
+
+
+
+
+
+
+
+
+% \begin{itemize}
+%     \item RAPPOR
+
+%     \item issues with RAPPOR
+
+%     \item Three protocols - kRR, OUE, OLH
+
+%     \item Problem Statement for Attack --- n genuine user, m fake user, how to increase frequency of item i
+% \end{itemize}
+
+
+
+
+\subsection{Threat Model:}
+\textbf{Attacker's Assumption:} We assume the attacker can inject $m$ fake users to the system. We also assume the attacker has access to the \textbf{\texttt{Encode}} and \textbf{\texttt{Perturb}} protocols, because these are executed locally on the user's side. As a result, the attacker knows about the domain size $d$, the encoded space $\mathcal{D}$, and the support set $\{y | v \in Support(y)\}$ for each perturbed value $y \in \mathcal{D}$. We use $\boldsymbol{Y}$ to denote the set of crafted perturbed values for the fake users.
+
+
+
+
+
+\textbf{Attacker's Goal:} For a set of attacker specified items $T = \{ t_1, t_2, \dots, t_r \}$, the goal is to increase the estimated frequency of each $t_i$. Suppose $\Tilde{f}_{t,b}$ and $\Tilde{f}_{t,a}$ are the frequencies estimated for target item $t$ before and after an attack. Then $\Delta\Tilde{f}_t = \Tilde{f}_{t,a} - \Tilde{f}_{t,b}, \forall t \in T$ is defined as the frequency gain for a target item $t$. The overall gain $G$ is defined as: $G(\boldsymbol{Y}) = \sum_{t \in T} \mathbb{E}[\Delta \Tilde{f}_t]$, and the attacker's goal is to maximize this overall gain:
+\begin{equation}
+    \label{eq:maxgain}
+    max_{\boldsymbol{Y}} G(\boldsymbol{Y})
+\end{equation}
+
+
+
+
+
+\textbf{Attack Types:} Cao et. al. defined three attacks \cite{cao2021data} as:
+\begin{itemize}[topsep=0pt, partopsep=0pt, itemsep=0pt] 
+    \item \textbf{Random Perturbed-value Attack (RPA)}: Select a perturbed value from $\mathcal{D}$ uniformly at random for each fake user (without considering any target item $t$) and send it to the aggregator.
+
+
+    \item \textbf{Random Item Attack (RIA)}: Select a target item $t$ from $T$ uniformly at random for each fake user, and encode, perturb, and send it to the aggregator.
+
+
+    \item \textbf{Maximal Gain Attack (MGA)}: Solve the optimization problem of \ref{eq:maxgain} to craft the perturbed values, and send it to the aggregator.
+\end{itemize}
+
+Due to space limitation, in this report we will only describe the Maximal Gain Attack, which \cite{cao2021data} proved as the best form of poisoning attack among all three.
+
+
+
+
+
+

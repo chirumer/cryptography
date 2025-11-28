@@ -1,0 +1,54 @@
+A Unified View
+of
+Frequency Estimation and their Attacks
+on
+Local Differential Privacy
+
+
+
+     Al Mehdi Saadat Chowdhury, Dhaval Pankaj Tanna, Deepak Vellanki, Chirag Manjeshwar
+                                        School of Computing and Augmented Intelligence
+                                                                Arizona State University
+Outline
+ Introduction:                            Frequency Estimation Techniques:
+    • Differential Privacy                  • K Randomized Response (kRR)
+    • Local Differential Privacy            • Optimized Unary Encoding (OUE)
+    • Frequency Estimation and Pure LDP     • Optimized Local Hashing (OLH)
+    • Attack Problem
+
+
+ Attacks:                                 Defenses:
+   • Attack Types                           • ?
+   • Attacking kRR                          • ?
+   • Attacking OUE                          • ?
+   • Attacking OLH
+
+
+ Evaluation:
+   • Comparison between Estimators
+   • Gain from Attacks                    Conclusion
+   • Impacts of Parameters on Attacks
+Introductory Concepts
+Differential Privacy
+Local Differential Privacy
+Frequency Estimation Problem
+Pure Local Differential Privacy
+Attack – Problem Formulation
+Frequency Estimation Techniques
+K Randomized Response
+Optimized Unary Encoding
+Optimized Local Hashing
+Attacks on Frequency Estimators
+Attack Types
+Attacking kRR
+Attacking OUE
+Attacking OLH
+Evaluation
+Comparison between Estimators
+Gain from Attacks
+Impacts of Parameters on Attacks
+Conclusion
+Summary
+Open Problems
+Thank You
+

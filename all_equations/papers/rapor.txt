@@ -1,0 +1,1216 @@
+    RAPPOR: Randomized Aggregatable Privacy-Preserving
+                   Ordinal Response
+
+                       Úlfar Erlingsson                                            Vasyl Pihur                   Aleksandra Korolova
+                             Google, Inc.                                           Google, Inc.             University of Southern California
+                     ulfar@google.com                                     vpihur@google.com                        korolova@usc.edu
+
+
+ABSTRACT                                                                                     asked to flip a fair coin, in secret, and answer “Yes” if it
+Randomized Aggregatable Privacy-Preserving Ordinal Re-                                       comes up heads, but tell the truth otherwise (if the coin
+sponse, or RAPPOR, is a technology for crowdsourcing statis-                                 comes up tails). Using this procedure, each respondent re-
+tics from end-user client software, anonymously, with strong                                 tains very strong deniability for any “Yes” answers, since
+privacy guarantees. In short, RAPPORs allow the forest of                                    such answers are most likely attributable to the coin coming
+client data to be studied, without permitting the possibil-                                  up heads; as a refinement, respondents can also choose the
+ity of looking at individual trees. By applying randomized                                   untruthful answer by flipping another coin in secret, and get
+response in a novel manner, RAPPOR provides the mecha-                                       strong deniability for both “Yes” and “No” answers.
+nisms for such collection as well as for efficient, high-utility                                Surveys relying on randomized response enable easy com-
+analysis of the collected data. In particular, RAPPOR per-                                   putations of accurate population statistics while preserving
+mits statistics to be collected on the population of client-side                             the privacy of the individuals. Assuming absolute compli-
+strings with strong privacy guarantees for each client, and                                  ance with the randomization protocol (an assumption that
+without linkability of their reports.                                                        may not hold for human subjects, and can even be non-
+   This paper describes and motivates RAPPOR, details its                                    trivial for algorithmic implementations [23]), it is easy to
+differential-privacy and utility guarantees, discusses its prac-                             see that in a case where both “Yes” and “No” answers can
+tical deployment and properties in the face of different attack                              be denied (flipping two fair coins), the true number of “Yes”
+models, and, finally, gives results of its application to both                               answers can be accurately estimated by 2(Y − 0.25), where
+synthetic and real-world data.                                                               Y is the proportion of “Yes” responses. In expectation, re-
+                                                                                             spondents will provide the true answer 75% of the time, as
+                                                                                             is easy to see by a case analysis of the two fair coin flips.
+1     Introduction
+                                                                                                Importantly, for one-time collection, the above random-
+Crowdsourcing data to make better, more informed deci-                                       ized survey mechanism will protect the privacy of any spe-
+sions is becoming increasingly commonplace. For any such                                     cific respondent, irrespective of any attacker’s prior knowl-
+crowdsourcing, privacy-preservation mechanisms should be                                     edge, as assessed via the -differential privacy guarantee [12].
+applied to reduce and control the privacy risks introduced                                   Specifically, the respondents will have differential privacy at
+by the data collection process, and balance that risk against                                the level  = ln 0.75/(1 − 0.75) = ln(3). This said, this
+the beneficial utility of the collected data. For this purpose                               privacy guarantee degrades if the survey is repeated—e.g.,
+we introduce Randomized Aggregatable Privacy-Preserving                                      to get fresh, daily statistics—and data is collected multiple
+Ordinal Response, or RAPPOR, a widely-applicable, practi-                                    times from the same respondent. In this case, to maintain
+cal new mechanism that provides strong privacy guarantees                                    both differential privacy and utility, better mechanisms are
+combined with high utility, yet is not founded on the use of                                 needed, like those we present in this paper.
+trusted third parties.
+                                                                                                Privacy-Preserving Aggregatable Randomized Response,
+   RAPPOR builds on the ideas of randomized response, a
+                                                                                             or RAPPORs, is a new mechanism for collecting statistics
+surveying technique developed in the 1960s for collecting
+                                                                                             from end-user, client-side software, in a manner that pro-
+statistics on sensitive topics where survey respondents wish
+                                                                                             vides strong privacy protection using randomized response
+to retain confidentiality [27]. An example commonly used
+                                                                                             techniques. RAPPOR is designed to permit collecting, over
+to describe this technique involves a question on a sensi-
+                                                                                             large numbers of clients, statistics on client-side values and
+tive topic, such as “Are you a member of the Communist
+                                                                                             strings, such as their categories, frequencies, histograms, and
+party?” [28]. For this question, the survey respondent is
+                                                                                             other set statistics. For any given value reported, RAPPOR
+                                                                                             gives a strong deniability guarantee for the reporting client,
+                                                                                             which strictly limits private information disclosed, as mea-
+                                                                                             sured by an -differential privacy bound, and holds even for
+Permission to make digital or hard copies of part or all of this work for personal or        a single client that reports often on the same value.
+classroom use is granted without fee provided that copies are not made or distributed           A distinct contribution is RAPPOR’s ability to collect
+for profit or commercial advantage, and that copies bear this notice and the full citation   statistics about an arbitrary set of strings by applying ran-
+on the first page. Copyrights for third-party components of this work must be honored.
+                                                                                             domized response to Bloom filters [5] with strong -differential
+For all other uses, contact the owner/authors. Copyright is held by the authors.
+CCS’14, November 3–7, 2014, Scottsdale, Arizona, USA.
+                                                                                             privacy guarantees. Another contribution is the elegant
+ACM 978-1-4503-2957-6/14/11, http://dx.doi.org/10.1145/2660267.2660348.                      manner in which RAPPOR protects the privacy of clients
+from whom data is collected repeatedly (or even infinitely        even fewer that provide clear privacy-protection guarantees.
+often), and how RAPPOR avoids addition of privacy exter-          Therefore, to reduce privacy risks, operators rely to a great
+nalities, such as those that might be created by maintain-        extent on pragmatic means and processes, that, for exam-
+ing a database of contributing respondents (which might be        ple, avoid the collection of data, remove unique identifiers,
+breached), or repeating a single, memoized response (which        or otherwise systematically scrub data, perform mandatory
+would be linkable, and might be tracked). In comparison,          deletion of data after a certain time period, and, in gen-
+traditional randomized response does not provide any lon-         eral, enforce access-control and auditing policies on data
+gitudinal privacy in the case when multiple responses are         use. However, these approaches are limited in their ability
+collected from the same participant. Yet another contribu-        to provide provably-strong privacy guarantees. In addition,
+tion is that the RAPPOR mechanism is performed locally            privacy externalities from individual data collections, such
+on the client, and does not require a trusted third party.        as timestamps or linkable identifiers, may arise; the privacy
+   Finally, RAPPOR provides a novel, high-utility decod-          impact of those externalities may be even greater than that
+ing framework for learning statistics based on a sophisti-        of the data collected.
+cated combination of hypotheses testing, least-squares solv-         RAPPOR can help operators handle the significant chal-
+ing, and LASSO regression [26].                                   lenges, and potential privacy pitfalls, raised by this dilemma.
+
+1.1    The Motivating Application Domain                          1.2    Crowdsourcing Statistics with RAPPOR
+RAPPOR is a general technology for privacy-preserving data
+                                                                  Service operators may apply RAPPOR to crowdsource statis-
+collection and crowdsourcing of statistics, which could be
+                                                                  tics in a manner that protects their users’ privacy, and thus
+applied in a broad range of contexts.
+                                                                  address the challenges described above.
+   In this paper, however, we focus on the specific application
+domain that motivated the development of RAPPOR: the                 As a simplification, RAPPOR responses can be assumed
+need for Cloud service operators to collect up-to-date statis-    to be bit strings, where each bit corresponds to a randomized
+tics about the activity of their users and their client-side      response for some logical predicate on the reporting client’s
+software. In this domain, RAPPOR has already seen lim-            properties, such as its values, context, or history. (Without
+ited deployment in Google’s Chrome Web browser, where             loss of generality, this assumption is used for the remainder
+it has been used to improve the data sent by users that           of this paper.) For example, one bit in a RAPPOR response
+have opted-in to reporting statistics [9]. Section 5.4 briefly    may correspond to a predicate that indicates the stated gen-
+describes this real-world application, and the benefits RAP-      der, male or female, of the client user, or—just as well—their
+POR has provided by shining a light on the unwanted or            membership in the Communist party.
+malicious hijacking of user settings.                                The structure of a RAPPOR response need not be other-
+   For a variety of reasons, understanding population statis-     wise constrained; in particular, (i) the response bits may be
+tics is a key part of an effective, reliable operation of on-     sequential, or unordered, (ii) the response predicates may
+line services by Cloud service and software platform oper-        be independent, disjoint, or correlated, and (iii) the client’s
+ators. These reasons are often as simple as observing how         properties may be immutable, or changing over time. How-
+frequently certain software features are used, and measuring      ever, those details (e.g., any correlation of the response bits)
+their performance and failure characteristics. Another, im-       must be correctly accounted for, as they impact both the uti-
+portant set of reasons involve providing better security and      lization and privacy guarantees of RAPPOR—as outlined in
+abuse protection to the users, their clients, and the service     the next section, and detailed in later sections.
+itself. For example, to assess the prevalence of botnets or          In particular, RAPPOR can be used to collect statistics on
+hijacked clients, an operator may wish to monitor how many        categorical client properties, by having each bit in a client’s
+clients have—in the last 24 hours—had critical preferences        response represent whether, or not, that client belongs to a
+overridden, e.g., to redirect the users’ Web searches to the      category. For example, those categorical predicates might
+URL of a known-to-be-malicious search provider.                   represent whether, or not, the client is utilizing a software
+   The collection of up-to-date crowdsourced statistics raises    feature. In this case, if each client can use only one of three
+a dilemma for service operators. On one hand, it will likely      disjoint features, X, Y , and Z, the collection of a three-bit
+be detrimental to the end-users’ privacy to directly collect      RAPPOR response from clients will allow measuring the
+their information. (Note that even the search-provider pref-      relative frequency by which the features are used by clients.
+erences of a user may be uniquely identifying, incriminat-        As regards to privacy, each client will be protected by the
+ing, or otherwise compromising for that user.) On the other       manner in which the three bits are derived from a single
+hand, not collecting any such information will also be to the     (at most) true predicate; as regards to utility, it will suffice
+users’ detriment: if operators cannot gather the right statis-    to count how many responses had the bit set, for each dis-
+tics, they cannot make many software and service improve-         tinct response bit, to get a good statistical estimate of the
+ments that benefit users (e.g., by detecting or preventing        empirical distribution of the features’ use.
+malicious client-side activity). Typically, operators resolve        RAPPOR can also be used to gather population statis-
+this dilemma by using techniques that derive only the nec-        tics on numerical and ordinal values, e.g., by associating re-
+essary high-order statistics, using mechanisms that limit the     sponse bits with predicates for different ranges of numerical
+users’ privacy risks—for example, by collecting only coarse-      values, or by reporting on disjoint categories for different
+granularity data, and by eliding data that is not shared by       logarithmic magnitudes of the values. For such numerical
+a certain number of users.                                        RAPPOR statistics, the estimate may be improved by col-
+   Unfortunately, even for careful operators, willing to uti-     lecting and utilizing relevant information about the priors
+lize state-of-the-art techniques, there are few existing, prac-   and shape of the empirical distribution, such as its smooth-
+tical mechanisms that offer both privacy and utility, and         ness.
+   Finally, RAPPOR also allows collecting statistics on non-       neous randomized response provides protection against pos-
+categorical domains, or categories that cannot be enumer-          sible tracking externalities.
+ated ahead of time, through the use of Bloom filters [5]. In          The idea of underlying memoization turns out to be cru-
+particular, RAPPOR allows collection of compact Bloom-             cial for privacy protection in the case where multiple re-
+filter-based randomized responses on strings, instead of hav-      sponses are collected from the same participant over time.
+ing clients report when they match a set of hand-picked            For example, in the case of the question about the Commu-
+strings, predefined by the operator. Subsequently, those re-       nist party from the start of the paper, memoization can allow
+sponses can be matched against candidate strings, as they          us to provide ln(3)-differential privacy even with an infinite
+become known to the operator, and used to estimate both            number of responses, as long as the underlying memoized
+known and unknown strings in the population. Advanced              response has that level of differential privacy.
+statistical decoding techniques must be applied to accurately         On the other hand, without memoization or other limita-
+interpret the randomized, noisy data in Bloom-filter-based         tion on responses, randomization is not sufficient to maintain
+RAPPOR responses. However, as in the case of categories,           plausible deniability in the face of multiple collections. For
+this analysis needs only consider the aggregate counts of          example, if 75 out of 100 responses are “Yes” for a single
+distinct bits set in RAPPOR responses to provide good es-          client in the randomized-response scheme at the very start
+timators for population statistics, as detailed in Section 4.      of this paper, the true answer will have been “No” in a van-
+   Without loss of privacy, RAPPOR analysis can be re-run          ishingly unlikely 1.39 × 10−24 fraction of cases.
+on a collection of responses, e.g., to consider new strings           Memoization is absolutely effective in providing longitudi-
+and cases missed in previous analyses, without the need to         nal privacy only in cases when the underlying true value does
+re-run the data collection step. Individual responses can be       not change or changes in an uncorrelated fashion. When
+especially useful for exploratory or custom data analyses.         users’ consecutive reports are temporally correlated, differ-
+For example, if the geolocation of clients’ IP addresses are       ential privacy guarantees deviate from their nominal levels
+collected alongside the RAPPOR reports of their sensitive          and become progressively weaker as correlations increase.
+values, then the observed distributions of those values could      Taken to the extreme, when asking users to report daily on
+be compared across different geolocations, e.g., by analyz-        their age in days, additional measures are required to pre-
+ing different subsets separately. Such analysis is compatible      vent full disclosure over time, such as stopping collection
+with RAPPOR’s privacy guarantees, which hold true even             after a certain number of reports or increasing the noise lev-
+in the presence of auxiliary data, such as geolocation. By         els exponentially, as discussed further in Section 6.
+limiting the number of correlated categories, or Bloom fil-           For a client that reports on a property that strictly alter-
+ter hash functions, reported by any single client, RAPPOR          nates between two true values, (a, b, a, b, a, b, a, b, . . .), the
+can maintain its differential-privacy guarantees even when         two memoized Permanent randomized responses for a and
+statistics are collected on multiple aspects of clients, as out-   b will be reused, again and again, to generate RAPPOR re-
+lined next, and detailed in Sections 3 and 6.                      port data. Thus, an attacker that obtains a large enough
+                                                                   number of reports, could learn those memoized “noisy” val-
+                                                                   ues with arbitrary certainty—e.g., by separately analyzing
+1.3    RAPPOR and (Longitudinal) Attacks                           the even and odd subsequences. However, even in this case,
+Protecting privacy for both one-time and multiple collec-          the attacker cannot be certain of the values of a and b be-
+tions requires consideration of several distinct attack mod-       cause of memoization. This said, if a and b are correlated,
+els. A basic attacker is assumed to have access to a single        the attacker may still learn more than they otherwise would
+report and can be stopped with a single round of random-           have; maintaining privacy in the face of any such correlation
+ized response. A windowed attacker has access to multiple          is discussed further in Sections 3 and 6 (see also [19]).
+reports over time from the same user. Without careful mod-            In the next section we will describe the RAPPOR algo-
+ification of the traditional randomized response techniques,       rithm in detail. We then provide intuition and formal justi-
+almost certainly full disclosure of private information would      fication for the reasons why the proposed algorithm satisfies
+happen. This is especially true if the window of observation       the rigorous privacy guarantees of differential privacy. We
+is large and the underlying value does not change much. An         then devote several sections to discussion of the additional
+attacker with complete access to all clients’ reports (for ex-     technical aspects of RAPPOR that are crucial for its poten-
+ample, an insider with unlimited access rights), is the hard-      tial uses in practice, such as parameter selection, interpre-
+est to stop, yet such an attack is also the most difficult to      tation of results via advanced statistical decoding, and ex-
+execute in practice. RAPPOR provides explicit trade-offs           periments illustrating what can be learned in practice. The
+between different attack models in terms of tunable privacy        remaining sections discuss our experimental evaluation, the
+protection for all three types of attackers.                       attack models we consider, the limitations of the RAPPOR
+                                                                   technique, as well as related work.
+   RAPPOR builds on the basic idea of memoization and
+provides a framework for one-time and longitudinal privacy
+protection by playing the randomized response game twice           2    The Fundamental RAPPOR Algorithm
+with a memoization step in between. The first step, called a       Given a client’s value v, the RAPPOR algorithm executed
+Permanent randomized response, is used to create a “noisy”         by the client’s machine, reports to the server a bit array
+answer which is memoized by the client and permanently             of size k, that encodes a “noisy” representation of its true
+reused in place of the real answer. The second step, called an     value v. The noisy representation of v is chosen in such a
+Instantaneous randomized response, reports on the “noisy”          way so as to reveal a controlled amount of information about
+answer over time, eventually completely revealing it. Long-        v, limiting the server’s ability to learn with confidence what
+term, longitudinal privacy is ensured by the use of the Per-       v was. This remains true even for a client that submits an
+manent randomized response, while the use of an Instanta-          infinite number of reports on a particular value v.
+                                                                                                                                                                                                                          Participant 8456 in cohort 1
+
+
+       True value:                                                                                                "The number 68"
+                                                                                                                                                                                                                                                                  0                        1
+                                                                                                                                                                                                                                                     4 signal bits
+   Bloom filter (B):                                                                                                                                                        |                            | |                                                                 |
+                        ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||| ||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||
+
+
+                                                                                                                                                                                                                                                           69 bits on
+      Fake Bloom
+         filter (B'):   ||| ||||||||||| ||||| ||||||||||||||||| ||||||||| ||||| || |||||| |||||||| |||||||| ||||||||||| |||| |||| ||||||||||||||| ||||||| |||||||||||||||||||||| |||| ||| |||||||| |||||||| |||||| ||| |||||| |||| ||||| ||| ||| |||||||||||||||||||||||||
+                                                                                                                                                                                                                                                       145 bits on
+       Report sent
+         to server:     ||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||| ||||| ||||||||||| ||||||||||||| ||||||||||||||||||||||||||||||||||||| |||||| ||||||||||| |||||||||||||||| |||||||||||||||||||||||||||||||
+                        1 8                         32                              64                                                             128                                                                                                                             256
+
+                                                                                                                                      Bloom filter bits
+
+
+Figure 1: Life of a RAPPOR report: The client value of the string “The number 68” is hashed onto the Bloom
+filter B using h (here 4) hash functions. For this string, a Permanent randomized response B 0 is produces and
+memoized by the client, and this B 0 is used (and reused in the future) to generate Instantaneous randomized
+responses S (the bottom row), which are sent to the collecting service.
+
+   To provide such strong privacy guarantees, the RAPPOR                                                                                        two particular versions was to make the scheme intuitive and
+algorithm implements two separate defense mechanisms, both                                                                                      easy to explain.
+of which are based on the idea of randomized response and                                                                                          The Permanent randomized response (step 2) replaces the
+can be separately tuned depending on the desired level of                                                                                       real value B with a derived randomized noisy value B 0 . B 0
+privacy protection at each level. Furthermore, additional                                                                                       may or may not contain any information about B depend-
+uncertainty is added through the use of Bloom filters which                                                                                     ing on whether signal bits from the Bloom filter are being
+serve not only to make reports compact, but also to compli-                                                                                     replaced by random 0’s with probability 12 f . The Perma-
+cate the life of any attacker (since any one bit in the Bloom                                                                                   nent randomized response ensures privacy because of the
+filter may have multiple data items in its pre-image).                                                                                          adversary’s limited ability to differentiate between true and
+   The RAPPOR algorithm takes in the client’s true value v                                                                                      “noisy” signal bits. It is absolutely critical that all future
+and parameters of execution k, h, f, p, q, and is executed lo-                                                                                  reporting on the information about B uses the same ran-
+cally on the client’s machine performing the following steps:                                                                                   domized B 0 value to avoid an “averaging” attack, in which
+                                                                                                                                                an adversary estimates the true value from observing multi-
+  1. Signal. Hash client’s value v onto the Bloom filter B                                                                                      ple noisy versions of it.
+     of size k using h hash functions.                                                                                                             The Instantaneous randomized response (step 3) plays
+  2. Permanent randomized response. For each client’s                                                                                           several important functions. Instead of directly reporting
+     value v and bit i, 0 ≤ i < k in B, create a binary re-                                                                                     B 0 on every request, the client reports a randomized version
+     porting value Bi0 which equals to                                                                                                          of B 0 . This modification significantly increases the difficulty
+                                                                                                                                               of tracking a client based on B 0 , which could otherwise be
+                   1,
+                          with probability 12 f                                                                                                viewed as a unique identifier in longitudinal reporting sce-
+                0                                                                                                                               narios. It also provides stronger short-term privacy guaran-
+              Bi = 0,      with probability 12 f
+                   
+                   B , with probability 1 − f                                                                                                  tees (since we are adding more noise to the report) which can
+                        i
+                                                                                                                                                be independently tuned to balance short-term vs long-term
+      where f is a user-tunable parameter controlling the                                                                                       risks. Through tuning of the parameters of this mechanism
+      level of longitudinal privacy guarantee.                                                                                                  we can effectively balance utility against different attacker
+                                                                                                                                                models.
+      Subsequently, this B 0 is memoized and reused as the
+      basis for all future reports on this distinct value v.                                                                                       Figure 1 shows a random run of the RAPPOR algorithm.
+                                                                                                                                                Here, a client’s value is v = “68”, the size of the Bloom fil-
+  3. Instantaneous randomized response. Allocate a                                                                                              ter is k = 256, the number of hash functions is h = 4, and
+     bit array S of size k and initialize to 0. Set each bit i                                                                                  the tunable randomized response parameters are: p = 0.5,
+     in S with probabilities                                                                                                                    q = 0.75, and f = 0.5. The reported bit array sent to the
+                               (                                                                                                                server is shown at the bottom of the figure. 145 out of 256
+                                 q, if Bi0 = 1.                                                                                                 bits are set in the report. Of the four Bloom filter bits in B
+                  P (Si = 1) =
+                                 p, if Bi0 = 0.                                                                                                 (second row), two are propagated to the noisy Bloom filter
+                                                                                                                                                B 0 . Of these two bits, both are turned on in the final report.
+  4. Report. Send the generated report S to the server.                                                                                         The other two bits are never reported on by this client due
+                                                                                                                                                to the permanent nature of B 0 . With multiple collections
+  There are many different variants of the above randomized                                                                                     from this client on the value “68”, the most powerful attacker
+response mechanism. Our main objective for selecting these                                                                                      would eventually learn B 0 but would continue to have lim-
+ited ability to reason about the value of B, as measured by         3.1     Differential Privacy of the Permanent Ran-
+differential privacy guarantee. In practice, learning about                 domized Response
+the actual client’s value v is even harder because multiple
+                                                                       Theorem 1. The Permanent randomized response (Steps
+values map to the same bits in the Bloom filter [4].
+                                                                    1 and 2 of RAPPOR)
+                                                                                    satisfies ∞ -differential privacy where
+                                                                                        1f
+                                                                                      1− 2
+2.1    RAPPOR Modifications                                         ∞ = 2h ln         1f      .
+                                                                                       2
+The RAPPOR algorithm can be modified in a number of
+ways depending on the particulars of the scenario in which            Proof. Let S = s1 , . . . , sk be a randomized report gen-
+privacy-preserving data collection is needed. Here, we list         erated by the RAPPOR algorithm. Then the probability of
+three common scenarios where omitting certain elements              observing any given report S given the true client value v
+from the RAPPOR algorithm leads to a more efficient learn-          and assuming that B 0 is known is
+ing procedure, especially with smaller sample sizes.
+                                                                    P (S = s|V = v)           = P (S = s|B, B 0 , v) · P (B 0 |B, v) · P (B|v)
+    • One-time RAPPOR. One time collection, enforced                                          = P (S = s|B 0 ) · P (B 0 |B) · P (B|v)
+      by the client, does not require longitudinal privacy pro-
+                                                                                              = P (S = s|B 0 ) · P (B 0 |B).
+      tection. The Instantaneous randomized response step
+      can be skipped in this case and a direct randomization           Because S is conditionally independent of B given B 0 , the
+      on the true client’s value is sufficient to provide strong    first probability provides no additional information about
+      privacy protection.                                           B. P (B 0 |B) is, however, critical for longitudinal privacy
+    • Basic RAPPOR. If the set of strings being collected           protection. Relevant probabilities are
+      is relatively small and well-defined, such that each                                             1           1
+      string can be deterministically mapped to a single bit              P (b0i = 1|bi = 1)       =     f +1−f =1− f                and
+                                                                                                       2           2
+      in the bit array, there is no need for using a Bloom filter                                      1
+      with multiple hash functions. For example, collecting               P (b0i = 1|bi = 0)       =     f.
+                                                                                                       2
+      data on client’s gender could simply use a two-bit ar-
+      ray with “male” mapped to bit 1 and “female” mapped              Without loss of generality, let the Bloom filter bits 1, . . . , h
+      to bit 2. This modification would affect step 1, where        be set, i.e., b∗ = {b1 = 1, . . . , bh = 1, bh+1 = 0, . . . , bk = 0}.
+      a Bloom filter would be replaced by a deterministic           Then,
+      mapping of each candidate string to one and only one                                     b01                1−b01
+      bit in the bit array. In this case, the effective number                                    1               1
+                                                                    P (B 0 = b0 |B = b∗ ) =          f       1− f            × ...
+      of hash functions, h, would be 1.                                                           2               2
+                                                                                                   b0h               1−b0h
+    • Basic One-time RAPPOR. This is the simplest                                                     1             1
+                                                                                              ×          f      1− f              × ...
+      configuration of the RAPPOR mechanism, combin-                                                  2             2
+      ing the first two modifications at the same time: one                                                 b0h+1  1−b0h+1
+      round of randomization using a deterministic mapping                                                 1           1
+                                                                                              × 1− f                     f            × ...
+      of strings into their own unique bits.                                                               2           2
+                                                                                                            b0k  1−b0k
+                                                                                                           1        1
+3     Differential Privacy of RAPPOR                                                          × 1− f                  f          .
+                                                                                                           2        2
+The scale and availability of data in today’s world makes
+increasingly sophisticated attacks feasible, and any system            Let RR∞ be the ratio of two such conditional probabil-
+that hopes to withstand such attacks should aim to ensure           ities with distinct values of B, B1 and B2 , i.e., RR∞ =
+                                                                    P (B 0 ∈R∗ |B=B1 )
+rigorous, rather than merely intuitive privacy guarantees.          P (B 0 ∈R∗ |B=B2 )
+                                                                                       . For the differential privacy condition to
+For our analysis, we adopt the rigorous notion of privacy, dif-     hold, RR∞ needs to be bounded by exp(∞ ).
+ferential privacy, which was introduced by Dwork et al [12]
+and has been widely adopted [10]. The definition aims to en-
+                                                                                  P (B 0 ∈ R∗ |B = B1 )
+sure that the output of the algorithm does not significantly        RR∞      =
+depend on any particular individual’s data. The quantifica-                       P (B 0 ∈ R∗ |B = B2 )
+                                                                                  P              0   0
+tion of the increased risk that participation in a service poses                     B 0 ∈R∗ P (B = Bi |B = B1 )
+to an individual can, therefore, empower clients to make a                   =    P i            0   0
+                                                                                     B 0 ∈R∗ P (B = Bi |B = B2 )
+better informed decision as to whether they want their data                              i
+
+to be part of the collection.                                                                 P (B 0 = Bi0 |B = B1 )
+                                                                             ≤     max                                     (by Observation 8)
+   Formally, a randomized algorithm A satisfies -differential                     0
+                                                                                  Bi ∈R∗      P (B 0 = Bi0 |B = B2 )
+privacy [12] if for all pairs of client’s values v1 and v2 and                        2(b01 +b02 +...+b0h −b0h+1 −b0h+2 −...−b02h )
+for all R ⊆ Range(A),                                                              1
+                                                                             =       f
+                                                                                   2
+              P (A(v1 ) ∈ R) ≤ e P (A(v2 ) ∈ R).                                             2(b0h+1 +b0h+2 +...+b02h −b01 −b02 −...−b0h )
+                                                                                          1
+   We prove that the RAPPOR algorithm satisfies the defini-                       × 1− f                                                      .
+                                                                                          2
+tion of differential privacy next. Intuitively, the Permanent
+randomized response part ensures that the “noisy” value de-           Sensitivity is maximized when b0h+1 = b0h+2 = . . . = b02h =
+rived from the true value protects privacy, and the Instanta-       1 and b01 = b02 = . . . = b0h = 0. Then,
+neous randomized response provides protection against us-                     1 2h
+                                                                               1− 2 f
+                                                                                                            1 
+                                                                                                             1− 2 f
+age of that response by a longitudinal tracker.                     RR∞ =       1f          and ∞ = 2h ln    1f    .
+                                                                                  2                                    2
+  Note that ∞ is not a function of k. It is true that a            of the product terms end up canceling out in the ratio
+smaller k, or a higher rate of Bloom filter bit collision, some-
+                                                                     P (S1 = s1 , S2 = s2 , . . . , Sj = sj , . . . , SN = sN |B1 )
+times improves privacy protection, but, on its own, it is not                                                                       =
+sufficient nor necessary to provide -differential privacy.          P (S1 = s1 , S2 = s2 , . . . , Sj = sj , . . . , SN = sN |B2 )
+                                                                                     QN
+                                                                                            P (Si = si |B1 )           P (Sj = sj |B1 )
+3.2     Differential Privacy of the Instantaneous                                    Qi=1
+                                                                                       N
+                                                                                                                   =                    .
+                                                                                       i=1  P   (S  i = si |B2 )       P (Sj = sj |B2 )
+        Randomized Response
+                                                                      Computing n for the nth collection cannot be made with-
+With a single data collection from each client, the attacker’s
+                                                                    out additional assumptions about how effectively the at-
+knowledge of B must come directly from a single report S
+                                                                    tacker can learn B 0 from the collected reports. We continue
+generated by applying the randomization twice, thus, pro-
+                                                                    working on providing these bounds under various learning
+viding a higher level of privacy protection than under the
+                                                                    strategies. Nevertheless, as N becomes large, the bound
+assumption of complete knowledge of B 0 .
+                                                                    approaches ∞ but always remains strictly smaller.
+  Because of a two-step randomization, probability of ob-
+serving a 1 in a report is a function of both q and p as well
+as f .                                                              4    High-utility Decoding of Reports
+                                                                    In most cases, the goal of data collection using RAPPOR is
+  Lemma 1. Probability of observing 1 given that the un-            to learn which strings are present in the sampled population
+derlying Bloom filter bit was set is given by                       and what their corresponding frequencies are. Because we
+                                        1                           make use of the Bloom filter (loss of information) and pur-
+        q ∗ = P (Si = 1|bi = 1) =         f (p + q) + (1 − f )q.    posefully add noise for privacy protection, decoding requires
+                                        2
+                                                                    sophisticated statistical techniques.
+Probability of observing 1 given that the underlying Bloom
+                                                                       To facilitate learning, before any data collection begins
+filter bit was not set is given by
+                                                                    each client is randomly assigned and becomes a permanent
+                                        1                           member of one of m cohorts. Cohorts implement differ-
+        p∗ = P (Si = 1|bi = 0) =          f (p + q) + (1 − f )p.    ent sets of h hash functions for their Bloom filters, thereby
+                                        2
+                                                                    reducing the chance of accidental collisions of two strings
+We omit the proof as the reasoning is straightforward that          across all of them. Redundancy introduced by running m
+probabilities in both cases are mixtures of random and true         cohorts simultaneously greatly improves the false positive
+responses with the mixing proportion f .                            rate. The choice of m should be considered carefully, how-
+                                                                    ever. When m is too small, then collisions are still quite
+  Theorem 2. The Instantaneous randomized response (Step            likely, while when m is too large, then each individual co-
+3 of RAPPOR)
+            satisfies 1 -differential privacy, where 1 =         hort provides insufficient signal due to its small sample size
+        q ∗ (1−p∗ )
+     
+h log   p∗ (1−q ∗ )
+                      and q ∗ and p∗ as defined in Lemma 1.         (approximately N/m, where N is the number of reports).
+                                                                    Each client must report its cohort number with every sub-
+   Proof. The proof is analogous to Theorem 1. Let RR1              mitted report, i.e., it is not private but made private.
+be the ratio of two conditional probabilities, i.e., RR1 =             We propose the following approach to learning from the
+P (S∈R|B=B1 )
+P (S∈R|B=B2 )
+              . To satisfy the differential privacy condition,      collected reports:
+this ratio must be bounded by exp(1 ).
+                                                                        • Estimate the number of times each bit i within cohort
+                           P (S ∈ R|B = B1 )                              j, tij , is truly set in B for each cohort. Given the
+              RR1     =                                                   number of times each bit i in cohort j, cij was set in
+                           P (S ∈ R|B = B2 )
+                           P                                              a set of Nj reports, the estimate is given by
+                              s ∈R P (S = sj |B = B1 )
+                      =    Pj                                                                    cij − (p + 12 f q − 21 f p)Nj
+                              sj ∈R P (S = sj |B = B2 )                                  tij =                                 .
+                                                                                                       (1 − f )(q − p)
+                                   P (S = sj |B = B1 )
+                      ≤    max
+                          sj ∈R P (S = sj |B = B2 )                       Let Y be a vector of tij ’s, i ∈ [1, k], j ∈ [1, m].
+                         ∗            h
+                         q (1 − p∗ )                                    • Create a design matrix X of size km × M where M is
+                      =
+                         p∗ (1 − q ∗ )                                    the number of candidate strings under consideration.
+                                                                          X is mostly 0 (sparse) with 1’s at the Bloom filter
+and
+                                    ∗                                    bits for each string for each cohort. So each column
+                                    q (1 − p∗ )
+                                                  
+                                                                          of X contains hm 1’s at positions where a particular
+                      1 = h log                    .
+                                    p∗ (1 − q ∗ )                         candidate string was mapped to by the Bloom filters in
+                                                                          all m cohorts. Use Lasso [26] regression to fit a model
+                                                                          Y ∼ X and select candidate strings corresponding to
+                                                                          non-zero coefficients.
+  The above proof naturally extends to N reports, since
+each report that is not changed contributes a fixed amount to           • Fit a regular least-squares regression using the selected
+the total probability of observing all reports and enters both            variables to estimate counts, their standard errors and
+nominator and denominator in a multiplicative way (because                p-values.
+of independence). Since our differential privacy framework
+considers inputs that differ only in a single record, j, (reports       • Compare p-values to a Bonferroni corrected level of
+set D1 becomes D2 differing in a single report Sj ), the rest             α/M = 0.05/M to determine which frequencies are
+                                                             Population Used in Experiments                                                                                                                           Varying the Bloom Filter Sizes
+
+
+
+
+                                                                                                                                                                             0.94
+                                                                                                                                                                                                                                                                                 ●          ●
+                                          0.08
+
+
+                                                                                                                                                                                                                                                                   ●
+
+
+
+
+                                                                                                                                      precision (true positive / detected)
+                                                                                                                                                                                                                                                                             ● ●
+
+
+
+
+                                                                                                                                                                             0.92
+                                                                                                                                                                                                                                                ●    ●                  ●
+                                                                                                                                                                                                                                                                        ●
+                                          0.06
+
+
+
+
+                                                                                                                                                                                                                                                 ●
+   Frequency
+
+
+
+
+                                                                                                                                                                             0.90
+                                                                                                                                                                                                                                      ●
+
+                                                                                                                                                                                                                              ●
+                                          0.04
+
+
+
+
+                                                                                                                                                                                                       ●
+                                                                                                                                                                                               ●
+
+
+
+
+                                                                                                                                                                             0.88
+                                                                                                                                                                                                   ●
+
+
+                                                                                                                                                                                                                                                                                        ●   128
+                                          0.02
+
+
+
+
+                                                                                                                                                                             0.86
+                                                                                                                                                                                                                                                                                            256
+                                                                                                                                                                                                                                                                                            512
+                                                                                                                                                                                                                                                                                            1024
+
+
+
+
+                                                                                                                                                                             0.84
+                                          0.00
+
+
+
+
+                                                                                                                                                                                                               ●
+
+
+                                                                                                                                                                                    0.45                           0.50                       0.55               0.60            0.65
+
+                                                                                                                                                                                                                          recall (true positive / population)
+
+
+
+                                                          Varying the Number of Hash Functions                                                                                                                        Varying the Number of Cohorts
+
+                                                                                                         ●                  ●                                                                                                                                ●                              ●
+                                                                                                                     ● ●
+                                          0.94
+
+
+
+
+                                                                                                                                                                             0.94
+                                                                                                                 ●               ●
+                                                                                                                            ●
+                                                                                                             ●               ●                                                                                                                           ●                   ●
+   precision (true positive / detected)
+
+
+
+
+                                                                                                                                      precision (true positive / detected)
+                                                                                                                                 ●
+                                                                                                         ●● ●                                                                                                                                                               ●●
+                                          0.92
+
+
+
+
+                                                                                                                                                                             0.92
+                                                                                                                                                                                                                                                     ●
+                                                                                                                                 ●
+                                                                                                                                                                                                                          ●                                  ●
+                                                                                                                        ●
+                                          0.90
+
+
+
+
+                                                                                                                                                                             0.90
+                                                                                                         ●                                                                                                                            ●
+                                                                                                                                                                                           ●
+                                                                                                                                                                                                                                  ●
+                                                                                                                                                                                                           ●
+                                                                                                                                                                                                                                          ●
+                                          0.88
+
+
+
+
+                                                                                                                                                                             0.88
+                                                                                                                                                                                                           ●
+
+
+                                                                                                                            ●    2                                                                                                                                                          ●   8
+                                          0.86
+
+
+
+
+                                                                                                                                                                             0.86
+
+
+
+
+                                                                                                                                 4                                                                                                                                                              16
+                                                                                                                                 8                                                                                                                                                              32
+                                                                                                                                 16                                                                                                                                                             64
+                                          0.84
+
+
+
+
+                                                                                                                                                                             0.84
+
+
+
+
+                                                                                                                                                                                                               ●
+
+
+                                                 0.45      0.50              0.55                 0.60           0.65                                                               0.45                           0.50                       0.55               0.60            0.65
+
+                                                                  recall (true positive / population)                                                                                                                     recall (true positive / population)
+
+
+
+
+Figure 2: Recall versus precision depending on choice of parameters k, h, and m. The first panel shows the
+true population distribution from which RAPPOR reports were sampled. The other three panels vary one
+of the parameters while keeping the other two fixed. Best precision and recall are achieved with using 2 hash
+functions, while the choices of k and m do not show clear preferences.
+
+
+                                          statistically significant from 0. Alternatively, control-                                                                            We ran a number of simulations (averaged over 10 repli-
+                                          ling the False Discovery Rate (FDR) at level α using                                                                               cates) to understand how these three parameters effect de-
+                                          the Benjamini-Hochberg procedure [3], for example,                                                                                 coding; see Figure 2. All scenarios assumed  = ln(3) pri-
+                                          could be used.                                                                                                                     vacy guarantee. Since only a single report from each user
+                                                                                                                                                                             was simulated, One-time RAPPOR was used. Population
+                                                                                                                                                                             sampled is shown in the first panel and contains 100 non-
+4.1                                        Parameter Selection                                                                                                               zero strings with 100 strings that had zero probability of
+                                                                                                                                                                             occurring. Frequencies of non-zero strings followed an expo-
+Practical implementation of the RAPPOR algorithm requires                                                                                                                    nential distribution as shown in the figure.
+specification of a number of parameters. p, q, f and the num-
+ber of hash functions h control the level of privacy for both                                                                                                                   In the other three panels, the x-axis shows the recall rate
+one-time and longitudinal collections. Clearly, if no longi-                                                                                                                 and the y-axis shows the precision rate. In all three pan-
+tudinal data is being collected, then we can use One-time                                                                                                                    els, the same set of points are plotted and are only labeled
+RAPPOR modification. With the exception of h, the choice                                                                                                                     differently depending on which parameter changes in a par-
+of values for these parameters should be driven exclusively                                                                                                                  ticular panel. Each point represents an average recall and
+by the desired level of privacy .  itself can be picked de-                                                                                                                precision for a unique combination of k, h, and m. For ex-
+pending on the circumstances of the data collection process;                                                                                                                 ample, the second panel shows the effect of the Bloom filter
+values in the literature range from 0.01 to 10 (see Table 1 in                                                                                                               size on both precision and recall while keeping both h and m
+[15]).                                                                                                                                                                       fixed. It is difficult to make definitive conclusions about the
+   Bloom filter size, k, the number of cohorts, m, and h must                                                                                                                optimal size of the Bloom filter as different sizes perform
+also be specified a priori. Besides h, neither k nor m are re-                                                                                                               similarly depending on the values of h and m. The third
+lated to the worst-case privacy considerations and should be                                                                                                                 panel, however, shows a clear preference for using only two
+selected based on the efficiency properties of the algorithm                                                                                                                 hash functions from the perspective of utility, as the decrease
+in reconstructing the signal from the noisy reports.                                                                                                                         in the number of hash functions used increases the expected
+                                                                                                       use of Bloom filter. Details of the calculations are shown in
+                                                                                                       the Appendix.
+                                                                                                          While providing ln(3)-differential privacy for one time col-
+                                         10000
+
+                                                     M = 10000
+                                                     M = 1e+05                                         lection, if one would like to detect items with frequency 1%,
+                                                     M = 1e+06                                         then one million samples are required, 0.1% would require a
+                                                     M = 1e+07
+                                                     M = 1e+08                                         sample size of 100 million and 0.01% items would be identi-
+Maximum Number of Discoverable Strings
+
+
+
+
+                                                     M = 1e+09                                         fied only in a sample size of 10 billion.
+                                         1000
+
+
+
+
+                                                                                                          Efficiency of the unmodified RAPPOR algorithm is sig-
+                                                                                                       nificantly inferior when compared to the Basic One-time
+                                                                                                       RAPPOR (the price of compression). Even for the Ba-
+                                                                                                       sic One-time RAPPOR, the provided bound can be theo-
+                                         100
+
+
+
+
+                                                                                                       retically achieved only if the underlying distribution of the
+                                                                                                       strings’ frequencies is uniform (a condition under which the
+                                                                                                       smallest frequency is maximized). With the presence of sev-
+                                                                                                       eral high-frequency strings, there is less probability mass
+                                         10
+
+
+
+
+                                                                                                       left for the tail and, with the drop in their frequencies, their
+                                                                                                       detectability suffers.
+
+                                                                                                       5     Experiments and Evaluation
+                                         1
+
+
+
+
+                                                 1e+02           1e+04     1e+06       1e+08   1e+10   We demonstrate our approach using two simulated and two
+                                                                         Sample Size                   real-world collection examples. The first simulated one uses
+                                                                                                       the Basic One-time RAPPOR where we learn the shape of
+                                                                                                       the underlying Normal distribution. The second simulated
+Figure 3: Sample size vs the upper limit on the                                                        example uses unmodified RAPPOR to collect strings whose
+strings whose frequency can be learned. Seven col-                                                     frequencies exhibit exponential decay. The third example is
+ored lines represent different cardinalities of the can-                                               drawn from a real-world dataset on processes running on a
+didate string set. Here, p = 0.5, q = 0.75 and f = 0.                                                  set of Windows machines. The last example is based on the
+                                                                                                       Chrome browser settings collections.
+
+recall. The fourth panel, similarly to the second, does not
+                                                                                                       5.1    Reporting on the Normal Distribution
+definitively indicate the optimal direction for choosing the                                           To get a sense of how effectively we can learn the underlying
+number of cohorts.                                                                                     distribution of values reported through the Basic One-time
+                                                                                                       RAPPOR, we simulated learning the shape of the Normal
+                                                                                                       distribution (rounded to integers) with mean 50 and stan-
+4.2                                              What Can We Learn?                                    dard deviation 10. The privacy constraints were: q = 0.75
+In practice, it is common to use thresholds on the number of                                           and p = 0.5 providing  = ln(3) differential privacy (f = 0).
+unique submissions in order to ensure some privacy. How-                                               Results are shown in Figure 4 for three different sample sizes.
+ever, arguments as to how those thresholds should be set                                               With 10,000 reports, results are just too noisy to obtain a
+abound, and most of the time they are based on a ‘feel’ for                                            good estimate of the shape. The Normal bell curve begins
+what is accepted and lack any objective justification. RAP-                                            to emerge already with 100,000 reports and at one million
+POR also requires , a user-tunable parameter, which by the                                            reports it is traced very closely. Notice the noise in the left
+design of the algorithm translates into limits on frequency                                            and right tails where there is essentially no signal. It is re-
+domain, i.e., puts a lower limit on the number of times a                                              quired by the differential privacy condition and also gives a
+string needs to be observed in a sample before it can be reli-                                         sense of how uncertain our estimated counts are.
+ably identified and its frequency estimated. Figure 3 shows
+the relationship between the sample size (x-axis) and the                                              5.2    Reporting on an Exponentially-distributed
+theoretical upper limit (y-axis) on how many strings can                                                      Set of Strings
+be detected at that sample size for a particular choice of                                             The true underlying distribution of strings from which we
+p = 0.5 and q = 0.75 (with f = 0) at a given confidence                                                sample is shown in Figure 5. It shows commonly encoun-
+level α = 0.05.                                                                                        tered exponential decay in the frequency of strings with sev-
+   It is perhaps surprising that we do not learn more at very                                          eral “heavy hitters” and the long tail. After sampling 1 mil-
+large sample sizes (e.g., one billion). The main reason is that                                        lion values (one collection event per user) from this popu-
+as the number of strings in the population becomes large,                                              lation at random, we apply RAPPOR to generate 1 million
+their frequencies proportionally decrease and they become                                              reports with p = 0.5, q = 0.75, f = 0.5, two hash functions,
+hard to detect at those low frequencies.                                                               Bloom filter size of 128 bits and 16 cohorts.
+   We can only reliably detect about 10,000 strings in a sam-                                             After the statistical analysis using the Bonferroni cor-
+ple of ten billion and about 1,000 with a sample
+                                             √     of one hun-                                         rection discussed above, 47 strings were estimated to have
+dred million. A general rule of thumb is N /10, where N                                                counts significantly different from 0. Just 2 of the 47 strings
+is the sample size. These theoretical calculations are based                                           were false positives, meaning their true counts were truly 0
+on the Basic One-time RAPPOR algorithm (the third mod-                                                 but estimated to be significantly different. The top-20 de-
+ification) and are the upper limit on what can be learned                                              tected strings with their count estimates, standard errors,
+since there is no additional uncertainty introduced by the                                             p-values and z-scores (SNR) are shown in Table 1. Small
+                     N = 1e+04                                   N = 1e+05                                  N = 1e+06
+
+
+
+
+                                           4000
+ 400
+
+
+
+
+                                                                                         30000
+                                           3000
+ 300
+
+
+
+
+                                                                                         20000
+                                           2000
+ 200
+
+
+
+
+                                                                                         10000
+                                           1000
+ 100
+ 0
+
+
+
+
+                                           0
+
+
+
+
+                                                                                         0
+Figure 4: Simulations of learning the normal distribution with mean 50 and standard deviation 10. The
+RAPPOR privacy parameters are q = 0.75 and p = 0.5, corresponding to  = ln(3). True sample distribution
+is shown in black; light green shows the estimated distribution based on the decoded RAPPOR reports. We
+do not assume a priori knowledge of the Normal distribution in learning. If such prior information were
+available, we could significantly improve upon learning the shape of the distribution via smoothing.
+
+
+                                                                       String    Est.   Stdev     P.value    Truth      Prop.   SNR
+                                                  Detected             V1       48803   2808     5.65E-63    49884      0.05    17.38
+                                                  Not−detected
+                                                                       V2       47388   2855     5.82E-58    47026      0.05    16.60
+                                                                       V5       41490   2801     4.30E-47    40077      0.04    14.81
+       0.04
+
+
+
+
+                                                                       V7       40682   2849     4.58E-44    36565      0.04    14.28
+                                                                       V4       40420   2811     1.31E-44    42747      0.04    14.38
+                                                                       V3       39509   2882     7.03E-41    44642      0.04    13.71
+       0.03
+
+
+
+
+                                                                       V8       36861   2842     5.93E-37    34895      0.03    12.97
+                                                                       V6       36220   2829     4.44E-36    38231      0.04    12.80
+                                                                       V 10     34196   2828     1.72E-32    31234      0.03    12.09
+       0.02
+
+
+
+
+                                                                       V9       32207   2805     1.45E-29    33106      0.03    11.48
+                                                                       V 12     30688   2822     9.07E-27    28295      0.03    10.87
+                                                                       V 11     29630   2831     5.62E-25    29908      0.03    10.47
+                                                                       V 14     27366   2850     2.33E-21    25984      0.03     9.60
+       0.01
+
+
+
+
+                                                                       V 19     23860   2803     3.41E-17    20057      0.02     8.51
+                                                                       V 13     22327   2826     4.69E-15    26913      0.03     7.90
+                                                                       V 15     21752   2825     2.15E-14    24653      0.02     7.70
+       0.00
+
+
+
+
+                                                                       V 20     20159   2821     1.26E-12    19110      0.02     7.15
+               1                 100                      200          V 18     19521   2835     7.74E-12    20912      0.02     6.89
+                                                                       V 17     18387   2811     7.86E-11    22141      0.02     6.54
+Figure 5: Population of strings with their true fre-
+                                                                       V 21     18267   2828     1.33E-10    17878      0.02     6.46
+quencies on the vertical axis (0.01 is 1%). Strings
+detected by RAPPOR are shown in dark red.
+                                                                      Table 1: Top-20 strings with their estimated fre-
+                                                                      quencies, standard deviations, p-values, true counts
+p-values show high confidence in our assessment that the              and signal to noise ratios (SNR or z-scores).
+true counts are much larger than 0 and, in fact, comparing
+columns 2 and 5 confirms that. Figure 5 shows all 47 de-
+tected strings in dark red. All common strings above the                 This collection used 128 Bloom filter with 2 hash func-
+frequency of approximately 1% were detected and the long              tions and 8 cohorts. Privacy parameters were chosen such
+tail remained protected by the privacy mechanism.                     that 1 = 1.0743 with q = 0.75, p = 0.5, and f = 0.5.
+                                                                      Given this configuration, we optimistically expected to dis-
+5.3           Reporting on Windows Process Names                      cover processes with frequency of at least 1.5%.
+We collected 186,792 reports from 10,133 different Windows               We identified 10 processes shown in Table 2 ranging in
+computers, sampling actively running processes on each ma-            frequency between 2.5% and 4.5%. They were identified by
+chine. On average, just over 18 process names were collected          controlling the False Discovery Rate at 5%. The “BADAP-
+from each machine with the goal of recovering the most com-           PLE.COM” process was estimated to have frequency of 2.6%.
+mon ones and estimating the frequency of a particularly ma-           The other 9 processes were common Windows tasks we would
+licious binary named “BADAPPLE.COM”.                                  expect to be running on almost every Windows machine.
+          Table 2: Windows processes detected.
+    Process Name        Est. Stdev   P.value   Prop.
+    RASERVER.EXE        8054 1212 1.56E-11     0.04
+    RUNDLL32.EXE        7488 1212 3.32E-10     0.04
+    CONHOST.EXE         7451 1212 4.02E-10     0.04
+    SPPSVC.EXE          6363 1212 7.74E-08     0.03
+    AITAGENT.EXE        5579 1212 2.11E-06     0.03
+    MSIEXEC.EXE         5147 1212 1.10E-05     0.03
+    SILVERLIGHT.EXE 4915 1212 2.53E-05         0.03
+    BADAPPLE.COM        4860 1212 3.07E-05     0.03
+    LPREMOVE.EXE        4787 1212 3.95E-05     0.03
+    DEFRAG.EXE          4760 1212 4.34E-05     0.03
+
+
+5.4     Reporting on Chrome Homepages
+The Chrome Web browser has implemented and deployed
+RAPPOR to collect data about Chrome clients [9]. Data
+collection has been limited to some of the Chrome users
+who have opted in to send usage statistics to Google, and to
+certain Chrome settings, with daily collection from approx-           1   2   3   4   5   6   7   8   9   10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+
+
+imately ∼14 million respondents.
+   Chrome settings, such as homepage, search engine and
+others, are often targeted by malicious software and changed
+                                                                   Figure 6: Relative frequencies of the top 31 unex-
+without users’ consent. To understand who the main players
+                                                                   pected Chrome homepage domains found by ana-
+are, it is critical to know the distribution of these settings
+                                                                   lyzing ∼14 million RAPPOR reports, excluding ex-
+on a large number of Chrome installations. Here, we focus
+                                                                   pected domains (the homepage “google.com”, etc.).
+on learning the distribution of homepages and demonstrate
+what can be learned from a dozen million reports with strong
+privacy guarantees.
+   This collection used 128 Bloom filter with 2 hash functions     of the first type. Nevertheless, the improvement in her abil-
+and 32 cohorts. Privacy parameters were chosen such that           ity to violate privacy is strictly bounded by the longitudinal
+1 = 0.5343 with q = 0.75, p = 0.5, and f = 0.75. Given            differential privacy guarantee of ∞ . This more powerful at-
+this configuration, optimistically, RAPPOR analysis can dis-       tacker may correspond to an adversary such as a malicious
+cover homepage URL domains, with statistical confidence,           Cloud service employee, who may have temporary access to
+if their frequency exceeds 0.1% of the responding popula-          reports, or access to a time-bounded log of reports.
+tion. Practically, this means that more than ∼14 thousand             The third type of attacker is assumed to have unlimited
+clients must report on the same URL domain, before it can          collection capabilities and can learn the Permanent random-
+be identified in the population by RAPPOR analysis.                ized response B 0 with absolute certainty. Because of the
+   Figure 6 shows the relative frequencies of 31 unexpected        randomization performed to obtain B 0 from B, she is also
+homepage domains discovered by RAPPOR analysis. (Since             bounded by the privacy guarantee of ∞ and cannot im-
+not all of these are necessarily malicious, the figure does not    prove upon this bound with more data collection. This cor-
+include the actual URL domain strings that were identified.)       responds to a worst-case adversary, but still one that doesn’t
+As one might have expected, there are several popular home-        have direct access to the true data values on the client.
+pages, likely intentionally set by users, along with a long tail      Despite envisioning a completely local privacy model, one
+of relatively rare URLs. Even though less than 0.5% out of         where users themselves release data in a privacy-preserving
+8,616 candidate URLs provide enough statistical evidence           fashion, operators of RAPPOR collections, however, can
+for their presence (after the FDR correction), they collec-        easily manipulate the process to learn more information than
+tively account for about 85% of the total probability mass.        warranted by the nominal ∞ . Soliciting users to partic-
+                                                                   ipate more than once in a particular collection results in
+                                                                   multiple Permanent randomized responses for each user and
+6     Attack Models and Limitations                                partially defeats the benefits of memoization. In the web-
+We consider three types of attackers with different capabil-       centric world, users use multiple accounts and multiple de-
+ities for collecting RAPPOR reports.                               vices and can unknowingly participate multiple times, re-
+   The least powerful attacker has access to a single report       leasing more information than what they expected. This
+from each user and is limited by one-time differential pri-        problem could be mitigated to some extent by running col-
+vacy level 1 on how much knowledge gain is possible. This         lections per account and sharing a common Permanent ran-
+attacker corresponds to an eavesdropper that has temporary         domized response. Notice the role of the operator to ensure
+ability to snoop on the users’ reports.                            that such processes are in place and the required or assumed
+   A windowed attacker is presumed to have access to one           trust on the part of the user.
+client’s data over a well-defined period of time. This at-            It is likely that some attackers will aim to target specific
+tacker, depending on the sophistication of her learning model,     users by isolating and analyzing reports from that user, or a
+could learn more information about a user than the attacker        small group of users that includes them. Even so, some
+      1.0
+
+
+
+
+                                                                                                                                                1.0
+                                                                        f = 0.25                                                                                               11         01         00
+                                                                        f = 0.5
+
+
+
+
+                                                                                   Probability of true value (0 or 1) given observed two bits
+                                                                        f = 0.75
+      0.8
+
+
+
+
+                                                                                                                                                0.8
+      0.6
+
+
+
+
+                                                                                                                                                0.6
+FDR
+
+      0.4
+
+
+
+
+                                                                                                                                                0.4
+      0.2
+
+
+
+
+                                                                                                                                                0.2
+      0.0
+
+
+
+
+                                                                                                                                                0.0
+                                                                                                                                                                                    1            0
+
+
+            0   0.1   0.2   0.3    0.4    0.5     0.6     0.7   0.8   0.9    1                                                                        0   0.1   0.2   0.3    0.4    0.5        0.6        0.7   0.8   0.9   1
+
+                                  Frequency of string v                                                                                                                     Frequency of string v
+
+
+Figure 7: False Discovery Rate (FDR) as a function                                 Figure 8: Exact probabilities for inferring the true
+of string frequency and f . Identifying rare strings                               value v given the two bits observed in a RAPPOR
+in a population without introducing a large num-                                   report S corresponding to the two bits set by string
+ber of false discoveries is infeasible. Also, FDR is                               v. For rare strings, even when both bits are set to
+proportional to f .                                                                1 (green lines), it is still much more likely that the
+                                                                                   client did not report v, but some other value.
+
+
+randomly-chosen users need not fear such attacks at all:
+                        h
+with probability 12 f , clients will generate a Permanent                          it not being reported. Because the prior probability fv is
+randomized response B 0 with all 0s at the positions of set                        so small, a single client’s reports cannot provide sufficient
+Bloom filter bits. Since these clients are not contributing any                    evidence in favor of v.
+useful information to the collection process, targeting them
+individually by an attacker is counter-productive. An at-                          6.1                                                                Caution and Correlations
+tacker has nothing to learn about this particular user. Also,                      Although it advances the state of the art, RAPPOR is not
+for all users, at all times, there is plausible deniability pro-                   a panacea, but rather simply a tool that can provide sig-
+portional to the fraction of clients providing no information.                     nificant benefits when used cautiously, and correctly, us-
+   In one particular attack scenario, imagine an attacker that                     ing parameters appropriate to its application context. Even
+is interested in learning whether a given client has a partic-                     then, RAPPOR should be used only as part of a comprehen-
+ular value v, whose population frequency is known to be                            sive privacy-protection strategy, which should include lim-
+fv . The strongest evidence in support of v comes in the                           ited data retention and other pragmatic processes mentioned
+form of both Bloom filter bits for v being set in the client’s                     in Section 1.1, and already in use by Cloud operators.
+report (if two hash functions are used). The attacker can                             As in previous work on differential privacy for database
+formulate its target set by selecting all reports with these                       records, RAPPOR provides privacy guarantees for the re-
+two bits set. However, this set will miss some clients with                        sponses from individual clients. One of the limitations of
+v and include other clients who did not report v. False dis-                       our approach has to do with “leakage” of additional informa-
+covery rate (FDR) is the proportion of clients in the target                       tion when respondents use several clients that participate in
+set who reported a value different from v. Figure 7 shows                          the same collection event. In the real world, this problem
+FDR as a function of fv , the frequency of the string v. No-                       is mitigated to some extent by intrinsic difficulty of linking
+tably, for relatively rare values, most clients in the target set                  different clients to the same participant. Similar issues occur
+will, in fact, have a value that is different from v, which will                   when highly correlated, or even exactly the same, predicates
+hopefully deter any would-be attackers.                                            are collected at the same time. This issue, however, can be
+   The main reason for the high FDR rate at low frequencies                        mostly handled with careful collection design.
+fv stems from the limited evidence provided by the observed                           Such inadvertent correlations can arise in many different
+bits in support of v. This is clearly illustrated by Figure 8                      ways in RAPPOR applications, in each case possibly lead-
+where the probability that v was reported (1) or not re-                           ing to the collection of too much correlated information from
+ported (0) by the client is plotted as a function of fv . For                      a single client, or user, and a corresponding degradation of
+relatively rare strings (those with less than 10% frequency),                      privacy guarantees. Obviously, this may be more likely to
+even when both bits corresponding to v are set in the report,                      happen if RAPPOR reports are collected, from each client,
+the probability of v being reported is much smaller than of                        on too many different client properties. However, it may
+also happen in more subtle ways. For example, the number            implement the system in a local model, where the privacy
+of cohorts used in the collection design must be carefully          is ensured by each client individually without a need for a
+selected and changed over time, to avoid privacy implica-           trusted third party. In that case, the client does not have
+tions; otherwise, cohorts may be so small as to facilitate          sufficient information about the data space in order to do
+the tracking of clients, or clients may report as part of dif-      the necessary biased sampling required by the Exponential
+ferent cohorts over time, which will reduce their privacy.          mechanism. Finally, randomized response has the additional
+RAPPOR responses can even affect client anonymity, when             benefit of being relatively easy to explain to the end user,
+they are collected on immutable client values that are the          making the reasoning about the algorithm used to ensure
+same across all clients: if the responses contain too many          privacy more accessible than other mechanisms implement-
+bits (e.g., the Bloom filters are too large), this can facilitate   ing differential privacy.
+tracking clients, since the bits of the Permanent randomized           Usage of various dimensionality reduction techniques in
+responses are correlated. Some of these concerns may not            order to improve the privacy properties of algorithms while
+apply in practice (e.g., tracking responses may be infeasi-         retaining utility is also fairly common [1, 17, 20, 22]. Al-
+ble, because of encryption), but all must be considered in          though our reliance on Bloom filters is driven by a desire
+RAPPOR collection design.                                           to obtain a compact representation of the data in order to
+   In particular, longitudinal privacy protection guaranteed        lower each client’s potential transmission costs and the de-
+by the Permanent randomized response assumes that client’s          sire to use technologies that are already widely adopted in
+value does not change over time. It is only slightly violated if    practice [6], the related work in this space with regards to
+the value changes very slowly. In a case of rapidly changing,       privacy may be a source for optimism as well [4]. It is con-
+correlated stream of values from a single user, additional          ceivable that through a careful selection of hash functions, or
+measures must be taken to guarantee longitudinal privacy.           choice of other Bloom filter parameters, it may be possible
+The practical way to implement this would be to budget ∞           to further raise privacy defenses against attackers, although
+over time, spending a small portion on each report. In the          we have not explored that direction in much detail.
+RAPPOR algorithm this would be equivalent to letting q                 The work most similar to ours is by Mishra and San-
+get closer and closer to p with each collection event.              dler [24]. One of the main additional contributions of our
+   Because differential privacy deals with the worst-case sce-      work is the more extensive decoding step, that provides both
+nario, the uncertainty introduced by the Bloom filter does          experimental and statistical analyses of collected data for
+not play any role in the calculation of its bounds. Depend-         queries that are more complex than those considered in their
+ing on the random draw, there may or may not be multiple            work. The second distinction is our use of the second ran-
+candidate strings mapping to the same h bits in the Bloom           domization step, the Instantaneous randomized response, in
+filter. For the average-case privacy analysis, however, Bloom       order to make the task of linking reports from a single user
+filter does provide additional privacy protection (a flavor of      difficult, along with more detailed models of attackers’ ca-
+k-anonymity) because of the difficulty in reliably inferring a      pabilities.
+client’s value v from its Bloom filter representation B [4].           The challenge of eliminating the need for a trusted aggre-
+                                                                    gator has also been approached with distributed solutions,
+                                                                    that place trust in other clients [11]. In this manner, dif-
+7   Related Work                                                    ferentially private protocols can be implemented, over dis-
+Data collection from clients in a way that preserves their          tributed user data, by relying on honest-but-curious proxies
+privacy and at the same time enables meaningful aggregate           or aggregators, bound by certain commitments [2, 8].
+inferences is an active area of research both in academia and          Several lines of work aim to address the question of lon-
+industry. Our work fits into a category of recently-explored        gitudinal data collection with privacy. Some recent work of
+problems where an untrusted aggregator wishes to learn the          considers scenarios when many predicate queries are asked
+“heavy hitters” in the clients’ data—or run certain types of        against the same dataset, and it uses an approach that,
+learning algorithms on the aggregated data—while guaran-            rather than providing randomization for each answer sep-
+teeing the privacy of each contributing client, and, in some        arately, attempts to reconstruct the answer to some queries
+cases, restricting the amount of client communication to the        based on the answers previously given to other queries [25].
+untrusted aggregator [7, 16, 18, 20]. Our contribution is to        The high-level idea of RAPPOR bears some resemblance
+suggest an alternative to those already explored that is in-        to this technique–the Instantaneous randomized response is
+tuitive, easy-to-implement, and potentially more suitable to        reusing the result of the Permanent randomized response
+certain learning problems, and to provide a detailed statisti-      step. However, the overall goal is different—rather than
+cal decoding methodology for our approach, as well as exper-        answering a diverse number of queries, RAPPOR collects
+imental data on its performance. Furthermore, in addition           reports to the same query over data that may be changing
+to guaranteeing differential privacy, we make explicit algo-        over time. Although it does not operate under the same local
+rithmic steps towards protection against linkability across         model as RAPPOR, recent work on pan-private streaming
+reports from the same user.                                         and on privacy under continual observation introduces addi-
+   It is natural to ask why we built our mechanisms upon            tional ideas relevant for the longitudinal data collection with
+randomized response, rather than upon two primitives most           privacy [13, 14].
+commonly used to achieve differential privacy: the Laplace
+and Exponential mechanisms [12, 21]. The Laplace mech-
+anism is not suitable because the client’s reported values
+                                                                    8   Summary
+may be categorical, rather than numeric, in which case di-          RAPPOR is a flexible, mathematically rigorous and practi-
+rect noise addition does not make semantic sense. The Ex-           cal platform for anonymous data collection for the purposes
+ponential mechanism is not applicable due to our desire to          of privacy-preserving crowdsourcing of population statistics
+on client-side data. RAPPOR gracefully handles multiple           [10] C. Dwork. A firm foundation for private data analysis.
+data collections from the same client by providing well-defined      Commun. ACM, 54(1):86–95, Jan. 2011.
+longitudinal differential privacy guarantees. Highly tunable
+parameters allow to balance risk versus utility over time,        [11] C. Dwork, K. Kenthapadi, F. McSherry, I. Mironov,
+depending on one’s needs and assessment of likelihood of             and M. Naor. Our data, ourselves: Privacy via
+different attack models. RAPPOR is purely a client-based             distributed noise generation. In Proceedings of 25th
+privacy solution. It eliminates the need for a trusted third-        Annual International Conference on the Theory and
+party server and puts control over client’s data back into           Applications of Cryptographic Techniques
+their own hands.                                                     (EUROCRYPT), pages 486–503, 2006.
+
+Acknowledgements                                                  [12] C. Dwork, F. McSherry, K. Nissim, and A. Smith.
+The authors would like to thank our many colleagues at               Calibrating noise to sensitivity in private data analysis.
+Google and its Chrome team who have helped with this                 In Proceedings of the 3rd Theory of Cryptography
+work, with special thanks due to Steve Holte and Moti Yung.          Conference (TCC), pages 265–284, 2006.
+Thanks also to the CCS reviewers, and many others who
+                                                                  [13] C. Dwork, M. Naor, T. Pitassi, and G. N. Rothblum.
+have provided insightful feedback on the ideas, and this
+                                                                     Differential privacy under continual observation. In
+paper, in particular, Frank McSherry, Arvind Narayanan,
+                                                                     Proceedings of the 42nd ACM Symposium on Theory of
+Elaine Shi, and Adam D. Smith.
+                                                                     Computing (STOC), pages 715–724, 2010.
+
+9   References                                                    [14] C. Dwork, M. Naor, T. Pitassi, G. N. Rothblum, and
+                                                                     S. Yekhanin. Pan-private streaming algorithms. In
+[1] C. C. Aggarwal and P. S. Yu. On privacy-preservation             Proceedings of The 1st Symposium on Innovations in
+   of text and sparse binary data with sketches. In                  Computer Science (ICS), pages 66–80, 2010.
+   Proceedings of the 2007 SIAM International Conference
+   on Data Mining (SDM), pages 57–67, 2007.                       [15] J. Hsu, M. Gaboardi, A. Haeberlen, S. Khanna,
+                                                                     A. Narayan, B. C. Pierce, and A. Roth. Differential
+[2] I. E. Akkus, R. Chen, M. Hardt, P. Francis, and
+                                                                     privacy: An economic method for choosing epsilon. In
+   J. Gehrke. Non-tracking web analytics. In Proceedings of
+                                                                     Proceedings of 27th IEEE Computer Security
+   the 2012 ACM Conference on Computer and
+                                                                     Foundations Symposium (CSF), 2014.
+   Communications Security (CCS), pages 687–698, 2012.
+[3] Y. Benjamini and Y. Hochberg. Controlling the false           [16] J. Hsu, S. Khanna, and A. Roth. Distributed private
+   discovery rate: A practical and powerful approach to              heavy hitters. In Proceedings of the 39th International
+   multiple testing. Journal of the Royal Statistical Society        Colloquium Conference on Automata, Languages, and
+   Series B (Methodological), 57(1):289–300, 1995.                   Programming (ICALP) - Volume Part I, pages 461–472,
+                                                                     2012.
+[4] G. Bianchi, L. Bracciale, and P. Loreti. ‘Better Than
+   Nothing’ privacy with Bloom filters: To what extent? In        [17] K. Kenthapadi, A. Korolova, I. Mironov, and
+   Proceedings of the 2012 International Conference on               N. Mishra. Privacy via the Johnson-Lindenstrauss
+   Privacy in Statistical Databases (PSD), pages 348–363,            transform. Journal of Privacy and Confidentiality,
+   2012.                                                             5(1):39–71, 2013.
+[5] B. H. Bloom. Space/time trade-offs in hash coding with
+                                                                  [18] D. Keren, G. Sagy, A. Abboud, D. Ben-David,
+   allowable errors. Commun. ACM, 13(7):422–426, July
+                                                                     A. Schuster, I. Sharfman, and A. Deligiannakis.
+   1970.
+                                                                     Monitoring distributed, heterogeneous data streams:
+[6] A. Z. Broder and M. Mitzenmacher. Network                        The emergence of safe zones. In Proceedings of the 1st
+   applications of Bloom filters: A Survey. Internet                 International Conference on Applied Algorithms
+   Mathematics, 1(4):485–509, 2003.                                  (ICAA), pages 17–28, 2014.
+[7] T.-H. H. Chan, M. Li, E. Shi, and W. Xu. Differentially       [19] D. Kifer and A. Machanavajjhala. No free lunch in
+   private continual monitoring of heavy hitters from                data privacy. In Proceedings of the ACM SIGMOD
+   distributed streams. In Proceedings of the 12th                   International Conference on Management of Data
+   International Conference on Privacy Enhancing                     (SIGMOD), pages 193–204, 2011.
+   Technologies (PETS), pages 140–159, 2012.
+[8] R. Chen, A. Reznichenko, P. Francis, and J. Gehrke.           [20] B. Liu, Y. Jiang, F. Sha, and R. Govindan.
+   Towards statistical queries over distributed private user         Cloud-enabled privacy-preserving collaborative learning
+   data. In Proceedings of the 9th USENIX Conference on              for mobile sensing. In Proceedings of the 10th ACM
+   Networked Systems Design and Implementation (NSDI),               Conference on Embedded Network Sensor Systems
+   pages 169–182, 2012.                                              (SenSys), pages 57–70, 2012.
+
+[9] Chromium.org. Design Documents: RAPPOR                        [21] F. McSherry and K. Talwar. Mechanism design via
+   (Randomized Aggregatable Privacy Preserving Ordinal               differential privacy. In Proceedings of the 48th Annual
+   Responses). http://www.chromium.org/developers/                   IEEE Symposium on Foundations of Computer Science
+   design-documents/rappor.                                          (FOCS), pages 94–103, 2007.
+[22] D. J. Mir, S. Muthukrishnan, A. Nikolov, and R. N.            Decoding for the Basic RAPPOR is quite simple. Here,
+   Wright. Pan-private algorithms via statistics on sketches.    we assume that f = 0. The expected number that bit i is
+   In Proceedings of Symposium on Principles of Database         set in a set of reports, Ci , is given by
+   Systems (PODS), pages 37–48, 2011.
+                                                                                   E(Ci ) = qTi + p(N − Ti ),
+[23] I. Mironov. On significance of the least significant bits
+   for differential privacy. In Proceedings of ACM               where Ti is the number of times bit i was truly set (was the
+   Conference on Computer and Communications Security            signal bit). This immediately provides the estimator
+   (CCS), pages 650–661, 2012.                                                                      Ci − pN
+                                                                                            T̂i =           .
+[24] N. Mishra and M. Sandler. Privacy via pseudorandom                                              q−p
+   sketches. In Proceedings of Symposium on Principles of          It can be shown that the variance of our estimator under
+   Database Systems (PODS), pages 143–152, 2006.                 the assumption that Ti = 0 is given by
+[25] A. Roth and T. Roughgarden. Interactive privacy via                                              p(1 − p)N
+                                                                                    V ar(T̂i ) =                .
+   the median mechanism. In Proceedings of the 42nd ACM                                                (q − p)2
+   Symposium on Theory of Computing (STOC), pages
+   765–774, 2010.                                                  Determining whether Ti is larger than 0 comes down to
+                                                                 statistical hypothesis testing with H0 : Ti = 0 vs H1 : Ti >
+[26] R. Tibshirani. Regression shrinkage and selection via       0. Under the null hypothesis H0 and letting p = 0.5, the
+   the Lasso. Journal of the Royal Statistical Society, Series   standard deviation of Ti equals
+   B, 58:267–288, 1994.                                                                             √
+                                                                                                      N
+[27] S. L. Warner. Randomized response: A survey                                        sd(T̂i ) =        .
+                                                                                                   2q − 1
+   technique for eliminating evasive answer bias. Journal of
+   the American Statistical Association, 60(309):pp. 63–69,        We reject H0 when
+   1965.                                                                              T̂i     >     Q × sd(T̂i )
+                                                                                                      √
+[28] Wikipedia. Randomized response.                                                                Q N
+   http://en.wikipedia.org/wiki/Randomized_response.                                          >            ,
+                                                                                                    2q − 1
+                                                                 where Q is the critical value from the standard normal distri-
+                                                                 bution Q = Φ−1 (1− 0.05 M
+                                                                                            ) (Φ−1 is the inverse of the standard
+APPENDIX                                                         Normal cdf). Here, M is the number of tests; in this case,
+                                                                 it is equal to k, the length of the bit array. Dividing by M ,
+Observation 1                                                    the Bonferroni correction, is necessary to adjust for multiple
+For a, b ≥ 0 and c, d > 0 : a+b ≤ max( ac , db ).                testing to avoid a large number of false positive findings.
+                            c+d
+                                                                    Let x be the largest number of bits for which this condition
+   Proof. Assume wlog that ac ≥ db , and suppose the state-      is true (i.e., rejecting the null hypothesis). x is maximized
+ment is false, i.e., a+b
+                     c+d
+                         > ac . Then ac + bc > ac + ad or        when x out of M items have a uniform distribution and a
+bc > ad, a contradiction with assumption that ac ≥ db .          combined probability mass of almost 1. The other M − x
+                                                                 bits have essentially 0 probability. In this case, each non-
+                                                                 zero bit will have frequency 1/x and its expected count will
+Deriving Limits on Learning
+                                                                 be E(T̂i ) = N/x ∀i.
+We consider a Basic One-time RAPPOR algorithm to estab-             Thus we require
+lish theoretical limits on what can be learned using a par-                                        √
+ticular parameter configuration and a number of collected                                  N     Q N
+                                                                                               >        ,
+reports N . Since the Basic One-time RAPPOR is more ef-                                     x    2q − 1
+ficient (lossless) than the original RAPPOR, the following
+                                                                 where solving for x gives
+provides a strict upper bound for all RAPPOR modifica-                                            √
+tions.                                                                                    (2q − 1) N
+                                                                                       x≤            .
+                                                                                               Q
+

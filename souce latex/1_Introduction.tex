@@ -1,0 +1,94 @@
+% Requires:
+% \begin{itemize}
+%     \item Motivation for the Problem
+%     \item Background on the research question
+% \end{itemize}
+
+
+
+
+Generating meaningful statistical summaries about a population without revealing information about any individual is the central goal of privacy-preserving data analysis. Since its introduction, Differential Privacy (DP) has become the gold-standard framework for analyzing sensitive data while providing rigorous privacy guarantees. For any randomized algorithm $M$, DP is defined \cite{dwork2014algorithmic} as the following:
+
+\begin{definition}[\textbf{Differential Privacy}]
+    Consider any database $x$ as a collection of records taken from a universe $\mathcal{X}$, and is represented by their histograms: $x \in \mathbb{N}^{|\mathcal{X}|}$ in which each entry $x_i$ represents the number of elements in $x$ of type $i \in \mathcal{X}$. A randomized algorithm $\mathcal{M}$ with domain $\mathbb{N}^{|\mathcal{X}|}$ is $(\epsilon, \delta)$-differentially private if for all $\mathcal{S} \subseteq Range(\mathcal{M})$ and for all $x, y \in \mathbb{N}^{|\mathcal{X}|}$ such that $\|x-y\|_1 \leq 1$:
+    \begin{equation*}
+        Pr[\mathcal{M}(x) \in \mathcal{S}] \leq e^\epsilon Pr[\mathcal{M}(y) \in \mathcal{S}] + \delta
+    \end{equation*}
+    Stronger privacy guarantee is achieved by using smaller privacy loss bound parameter $\epsilon$; the parameter $\delta$ represents the probability that the guarantee fails to hold.
+\end{definition}
+
+
+
+
+
+DP requires a central curator who collects the dataset and perturbs it to preserve privacy. This not only creates legal, ethical, and technical burden on the curator, but also the privacy itself becomes vulnerable if the curator is compromised. Local differential privacy (LDP) can solve this issue by asking each user to encrypt their data before sending to the curator. The only job of the curator remains is to aggregate the data from all users.
+
+\begin{definition}[\textbf{Local Differential Privacy} \cite{wang2017locally}]
+    An algorithm $\mathcal{M}$ satisfies $\epsilon$-local differential privacay ($\epsilon$-LDP), where $\epsilon \geq 0$, iff for any input $v_1$ and $v_2$, we have:
+    \begin{equation*}
+        \forall y \in Range(\mathcal{M}): Pr[\mathcal{M}(v_1) = y] \leq e^\epsilon Pr[\mathcal{M}(v_2) = y]
+    \end{equation*}
+\end{definition}
+
+
+
+
+
+LDP can be ensured by following three protocols. The \textbf{\texttt{Encode}} protocol takes an input value $v$ and outputs an encoded value $x$. The \textbf{\texttt{Perturb}} protocol returns a noisy version of the encoded $x$ as $y = Perturb(Encode(v))$. The \textbf{\texttt{Aggregate}} protocol takes perturbed values from all users and returns any required aggregate information. The first two protocols, \textbf{\texttt{Encode}} and \textbf{\texttt{Perturb}}, are executed by the user (we will combine them into one as \textbf{\texttt{PE(v)}}), and the curator executes \textbf{\texttt{Aggregate}}.
+
+
+
+
+
+One of the most basic goals of the \textbf{\texttt{Aggregate}} task is \textit{frequency estimation}. Given the input domain $[d] = \{1, 2, \dots, d\}$ of all users, frequency estimation seeks to estimate how many users have a given value $i \in [d]$. Since it serves as a building block for most \textbf{\texttt{Aggregate}} tasks, improving frequency estimation can significantly benefit other protocols, making it a critical problem.
+
+
+
+
+
+Many popular methods for frequency estimation exists, including Google's RAPPOR \cite{erlingsson2014rappor}, Samsung's Harmony \cite{nguyen2016collecting}, Direct Encoding \cite{wang2016private}, k-Randomized Response \cite{duchi2013local}, Optimized Unary Encoding \cite{wang2017locally}, Optimized Local Hashing \cite{wang2017locally}. In this work, we organize and review some of these estimation methods, identify which of these are relatively better, and show how attacks can be developed \cite{cao2021data} against these better protocols.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \begin{itemize}
+%     \item What is differential privacy, why it is important
+    
+%     \item What is local differential privacy, what's wrong with regular DP, motivation with case studies
+    
+%     \item Fundamental protocols (Encrypt, Perturb, Aggregate) to achieve LDP
+    
+%     \item Background on LDP protocols (kRR, OUE, OLH)
+    
+%     \item The frequency estimation problem and how to attack
+% \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

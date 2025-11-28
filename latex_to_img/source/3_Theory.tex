@@ -1,0 +1,175 @@
+\subsection{Foundational Work: Google RAPPOR}
+The practical adoption of Local Differential Privacy was significantly advanced by the introduction of RAPPOR (Randomized Aggregatable Privacy-Preserving Ordinal Response) by Google \cite{rappor}. Deployed within the Chrome web browser, RAPPOR was the first large-scale industrial implementation of LDP, designed to collect crowdsourced statistics—such as homepage settings and process usage—without tracking individual users.
+
+RAPPOR utilizes Bloom filters to map inputs into bit strings, followed by a randomized response mechanism that perturbs each bit independently (a technique often referred to as Basic RAPPOR). This approach allows for the estimation of frequencies even over potentially infinite domains (e.g., strings). RAPPOR serves as the foundational architecture for the Unary Encoding (UE) family of protocols. The Optimized Unary Encoding (OUE) and Optimized Local Hashing (OLH) protocols analyzed in this work can be viewed as evolutions of the RAPPOR concept, where Wang et al. \cite{wang2017locally} refined the perturbation parameters to minimize estimation variance while optimizing communication costs.
+\subsection{Frequency Estimation Techniques:}
+\label{section:freqest}
+
+
+In this section, we describe the LDP protocols (\textbf{\texttt{Encode}}, \textbf{\texttt{Perturb}}, and \textbf{\texttt{Aggregate}}) for all three selected frequency estimators - kRR, OUE, OLH.
+
+
+
+
+
+\subsubsection{k Randomized Response:}
+\textbf{\texttt{Encode}}: kRR encodes an item $v$ to itself, i.e., $Encode(v) = v$. 
+
+\textbf{\texttt{Perturb}}: Perturb keeps an encoded item unchanged with a probability $p$ and perturbs it to a different item $i \in \mathcal{D}$ with probability $q$, as defined below:
+\begin{equation*}
+    Pr[PE(v) = i]=
+    \begin{cases}
+      p = \frac{e^\epsilon}{e^\epsilon + d - 1}, & \text{if}\ i=v \\
+      q = \frac{1-p}{d-1}, & \text{otherwise}
+    \end{cases}
+\end{equation*}
+
+\textbf{\texttt{Aggregate}}: The general equation for aggregation to get an estimated frequency of an item $v$ in a pure LDP protocol is given by:
+\begin{equation}
+    \label{eq:aggregation}
+    \tilde{f}_v = \frac{\sum_j \mathbb{I}_{Support(y^j)}(v) - nq^*}{p^* - q^*}
+\end{equation}
+Here $j$ denotes an user. The only challenge in equation \ref{eq:aggregation} is to define the support set, $Support(y^j)$.
+
+In kRR, a perturbed value $y$ only supports itself, i.e., $Support(y^j) = \{y\}$.
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Optimized Unary Encoding:}
+\textbf{\texttt{Encode}}: $Encode(v) = [0, \dots, 0, 1, 0, \dots, 0]$, a length-$d$ binary vector where only the $v$-th position is $1$.
+
+\textbf{\texttt{Perturb}}: A bit in the binary vector remains $1$ with probability $p$. Otherwise if the bit is $0$, it is flipped to $1$ with probability $q$ according to the following definition:
+
+\begin{equation*}
+    Pr[PE(v) = i]=
+    \begin{cases}
+      p = \frac{1}{2}, & \text{if}\ i=v \\
+      q = \frac{1}{e^\epsilon + 1}, & \text{otherwise}
+    \end{cases}
+\end{equation*}
+
+\textbf{\texttt{Aggregate}}: A perturbed value $y$ supports an input $v$ iff the $v$-th bit, $y_v$, of the bit vector equals $1$. Therefore, the support set becomes $Support(y^j) = \{ v | v \in [d]\ and\ y_v = 1 \}$.
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Optimized Local Hashing:}
+\textbf{\texttt{Encode}}: $Encode(v) = \langle H, x \rangle$, where $H \in \mathcal{H}$ is a hash function chosen uniformly at random, and $x = H(v)$.
+
+\textbf{\texttt{Perturb}}: OLH only perturbs the hash value $x$, and does not change the hash function $H$. The hash value in the binary vector remains unchanged with probability $p$ and switches to a different value in $[d]$ with probability $q$ according to the following definition:
+
+\begin{equation*}
+    \forall_{i \in [d]} Pr[y = \langle H, x \rangle]=
+    \begin{cases}
+      p = \frac{e^\epsilon}{e^\epsilon + d - 1}, & \text{if}\ x=i \\
+      q = \frac{1}{e^\epsilon + d - 1}, & \text{otherwise}
+    \end{cases}
+\end{equation*}
+
+\textbf{\texttt{Aggregate}}: A perturbed value $y$ supports an input $v$ iff $v$ is hashed to $x$ by $H$. Therefore, the support set becomes $Support(y^j) = \{ v | v \in [d]\ and\ H(v) = x \}$.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% To facilitate a rigorous comparison, we detail the construction of the three representative frequency estimation protocols under the framework of Pure LDP as unified by Wang et al. \cite{wang2017locally}.
+% \begin{itemize}
+%     \item \textbf{k-Randomized Response (kRR):}
+%     kRR is the direct generalization of the classic Randomized Response technique to a domain of size $d$. As described in \cite{wang2017locally}, for an input value $v$, the user reports the true value $v$ with probability $p = \frac{e^{\epsilon}}{e^{\epsilon} + d - 1}$ and reports a different value $v' \neq v$ chosen uniformly at random with probability $1-p$. While simple to implement, the probability of reporting the truth decreases as the domain size $d$ increases, necessitating a larger correction factor during aggregation to obtain an unbiased estimate.
+
+%     \item \textbf{Optimized Unary Encoding (OUE):}
+%     To address the dependency on $d$ found in kRR, OUE encodes the input $v$ into a binary vector of length $d$, where only the $v$-th bit is 1 and all other bits are 0 \cite{wang2017locally}. Each bit is then perturbed independently. Unlike Symmetric Unary Encoding (SUE), OUE optimizes the perturbation parameters to minimize variance for expected low-frequency inputs. Specifically, it sets the probability of preserving a 1 as $p=0.5$ and the probability of flipping a 0 to a 1 as $q = \frac{1}{e^{\epsilon} + 1}$. This allows the variance to remain constant regardless of the domain size $d$.
+
+%     \item \textbf{Optimized Local Hashing (OLH):}
+%     While OUE provides variance independent of $d$, it incurs a high communication cost of $\Theta(d)$ \cite{wang2017locally}. OLH resolves this by mapping the input $v$ to a smaller domain size $g$ using a random hash function $H$ chosen from a universal family \cite{wang2017locally}. The user computes $y = H(v)$ and perturbs $y$ using the standard mechanism on the reduced domain $g$. The user reports the pair $\langle H, y \rangle$. Wang et al. \cite{wang2017locally} derive that the optimal domain size is $g \approx e^{\epsilon} + 1$, which mathematically aligns the variance of OLH with OUE while reducing communication cost from $\Theta(d)$ to $\mathbf{\Theta(n)}$.
+% \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Attacks on Frequency Estimation:}
+We analyze the vulnerability of the protocols defined in section \ref{section:freqest} against the Maximal Gain Attack (MGA) proposed by Cao et al. \cite{cao2021data}. In this model, the attacker controls $m$ fake users and aims to maximize the estimated frequency of a target item set $T$.
+
+
+
+
+\subsubsection{Attacking kRR:}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{itemize}[topsep=0pt, partopsep=0pt, itemsep=0pt] 
+    \item \textbf{Attacking kRR:}
+    The attack strategy against kRR is straightforward but highly damaging in large domains. As detailed in \cite{cao2021data}, fake users simply report the target item $t \in T$ as their output. The aggregator, assuming the data follows the kRR noise distribution, applies an inverse transformation that scales the count by a factor proportional to $d$. Consequently, for large domain sizes, even a small number of fake reports results in a massive amplification of the estimated frequency for $t$, as the system overcompensates for the assumed high noise level.
+
+    \item \textbf{Attacking OUE:}
+    For Unary Encoding protocols, the attacker exploits the independent perturbation of bits. To execute the MGA against OUE, fake users construct a "poisoned" bit vector \cite{cao2021data}. To promote a target $t$, the fake users deterministically set the $t$-th bit to 1 (the supported value). Depending on the specific gain formulation, the attacker may also manipulate the non-target bits to further statistically distinguish the fake inputs from genuine noise, although the primary gain is driven by the "support" of the target index.
+
+    \item \textbf{Attacking OLH:}
+    Since OLH relies on hashing, the attack leverages hash collisions. As described by Cao et al. \cite{cao2021data}, for a target $t$, the fake user explores the family of hash functions to find a specific function $H$ and a perturbed value $y$ such that $y = H(t)$. By reporting the pair $\langle H, y \rangle$, the fake user guarantees that the aggregator's decoding step will increment the count for $t$ (along with other colliding values). This allows the attacker to inject bias into the estimation of $t$ indistinguishable from valid hash reports.
+\end{itemize}
+
+
+
+
+
+
+
+
+
+

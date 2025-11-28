@@ -1,0 +1,157 @@
+\documentclass[10pt]{article}
+
+
+
+
+
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{titling}
+\usepackage{sectsty}
+\sectionfont{\fontsize{11}{15}\selectfont}
+\subsectionfont{\fontsize{11}{15}\selectfont}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{0.2\baselineskip}{0.2\baselineskip}
+\usepackage{enumitem}
+
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{indentfirst} % Indent the first paragraph after sections
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins}
+\usepackage{caption}
+\DeclareCaptionFont{bold}{\bfseries}
+\captionsetup[table]{labelfont={sf,bold}}
+\usepackage{float}
+
+
+
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtcbtheorem[
+  number within=section
+]{problem}{Problem Formulation}{
+  enhanced,
+  frame hidden,
+  colback=white,
+  borderline west={2pt}{0pt}{gray!60},
+  fonttitle=\bfseries,
+  coltitle=black,
+  before skip=5pt,   % reduce space before
+  after skip=8pt,    % reduce space after
+  top=2pt,           % reduce top padding
+  bottom=2pt         % reduce bottom padding
+}{pr}
+
+
+
+
+
+\begin{document}
+\setlength{\droptitle}{-7em}
+\title{A Unified View of Frequency Estimation and their Attacks on Local Differential Privacy}
+
+
+
+\author{Al Mehdi Saadat Chowdhury\thanks{CSE PhD 3rd year} \and Dhaval Pankaj Tanna\thanks{CSE Master's 2nd year}
+\and Deepak Vellanki\thanks{CSE Master's 2nd year} \and Chirag Manjeshwar\thanks{CSE Master's 2nd year}}
+
+% <-this % stops a space
+%
+
+
+
+
+\date{}
+\maketitle
+\vspace*{-1cm}
+
+
+
+
+
+\begin{abstract}%
+\input{0_Abstract}
+\end{abstract}
+
+
+
+
+
+\section{Introduction}\label{sec:intro}
+\input{1_Introduction}
+  
+
+
+
+
+\section{Problem Setup and Threat Model}\label{sec:problemthreat}
+\input{2_ProblemThreat}
+
+
+
+
+
+\section{Theory/Construction/Analysis}\label{sec:theory}
+\input{3_Theory}
+
+
+
+
+
+\section{Evaluation}\label{sec:evaluation}
+\input{4_Evaluation}
+
+
+
+
+
+\section{Conclusions}\label{sec:conclusion}
+\input{5_Conclusions}
+
+
+
+
+
+\bibliographystyle{abbrv}
+\bibliography{myproject_bib}
+
+
+
+
+
+\appendix
+\section{Experimental Figures}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{graphs/mga_comparison.png}
+    \caption{Impact of different parameters on MGA attack gains (first row) and normalized MGA gains (second row) across kRR and OUE/OLH protocols.}
+    \label{fig:appendix-OLH}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{graphs/kRR.png}
+    \caption{Impact of different parameters on the overall gains (first row) and normalized overall gains (second row) of the three attacks for kRR.}
+    \label{fig:appendix-kRR}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{graphs/oue.png}
+    \caption{Impact of different parameters on the overall gains (first row) and normalized overall gains (second row) of the three attacks for OUE.}
+    \label{fig:appendix-OUE}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{graphs/olh.png}
+    \caption{Impact of different parameters on the overall gains (first row) and normalized overall gains (second row) of the three attacks for OLH.}
+    \label{fig:appendix-OLH}
+\end{figure}
+
+\end{document}
+

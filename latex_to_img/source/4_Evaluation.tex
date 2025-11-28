@@ -1,0 +1,43 @@
+% Requires:
+% \begin{itemize}
+%     \item Dataset 
+%     \item Results
+% \end{itemize}
+
+\paragraph{Definition of Parameters:} Before evaluating the specific protocols and attacks, we define the key parameters used throughout the analysis and summarized in Table \ref{tab:comparison}. Let $n$ be the number of genuine users and $m$ be the number of fake users injected by the attacker, resulting in a fake user fraction of $\beta = \frac{m}{n+m}$. The domain size is denoted by $d$. The attacker aims to promote a set of target items $T$ of size $r = |T|$. We denote the sum of the true frequencies of these target items among the genuine users as $f_T = \sum_{t \in T} f_t$. Finally, $\epsilon$ represents the privacy budget, and $e$ is the base of the natural logarithm.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{8pt}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & \textbf{kRR} & \textbf{OUE} & \textbf{OLH} \\
+\hline
+\textbf{Communication Cost} & $O(\log d)$ & $O(d)$ & $O(\log n)$ \\
+\hline
+\textbf{Variance ($Var^*$)} & $n\cdot\frac{d-2+e^\epsilon}{(e^\epsilon-1)^2}$ & $n \cdot \frac{4e^\epsilon}{(e^\epsilon-1)^2}$ & $n \cdot \frac{4e^\epsilon}{(e^\epsilon-1)^2}$ \\
+\hline
+\textbf{MGA Gain ($G$)} & $\beta(1-f_T) + \frac{\beta(d-r)}{e^\epsilon-1}$ & $\beta(2r-f_T) + \frac{2\beta r}{e^\epsilon-1}$ & $\beta(2r-f_T) + \frac{2\beta r}{e^\epsilon-1}$ \\
+\hline
+\end{tabular}
+\caption{Theoretical comparison of LDP protocols regarding Utility (Cost and Variance) and Security (MGA Gain). The parameters $n, m, \beta, d, r, f_T, \epsilon$ are defined in the beginning of Section \ref{sec:evaluation}.}
+\label{tab:comparison}
+\end{table}
+
+\subsection{Evaluation of Frequency estimation Techniques}
+\label{subsec: freq_estim_eval}
+
+We evaluate the theoretical limits of the protocols using the unified framework derived by Wang et al. \cite{wang2017locally}, as summarized in the first two rows of Table \ref{tab:comparison}. For kRR, the variance scales linearly with the domain size $d$ (see Row 2). This linear dependency implies that for large domains (e.g., $d=10^5$), the noise in kRR completely overwhelms the signal, making it theoretically optimal only for small domains. OUE addresses this by optimizing perturbation parameters to decouple variance from $d$, achieving a stable variance of $\frac{4ne^\epsilon}{(e^\epsilon-1)^2}$. However, as shown in Row 1, OUE incurs a prohibitive communication cost of $O(d)$. OLH resolves this conflict by hashing the input into a smaller domain. This allows OLH to achieve the exact same optimal variance as OUE while reducing the communication overhead exponentially to $O(\log n)$. Thus, OLH represents the theoretical optimum, minimizing communication cost at no cost to utility.
+
+\subsection{Evaluation of Attacks on Frequency Estimation Techniques}
+\label{subsec: freq_estim_attacks_eval}
+
+We now analyze the effectiveness of the Maximal Gain Attack (MGA) using the expected attack gains derived by Cao et al. \cite{cao2021data}, presented in the third row of Table \ref{tab:comparison}. Comparing the protocols reveals a critical vulnerability difference. The attack gain for kRR contains the term $d$ in the numerator, meaning its vulnerability scales linearly with the domain size. This renders kRR catastrophically insecure for large vocabularies, as the system implicitly trusts reports more to compensate for high noise. In contrast, the gains for OUE and OLH (Row 3, Columns 2 and 3) depend on the number of targets $r$ but are independent of $d$. While still vulnerable to poisoning, OUE and OLH are significantly more robust than kRR for large domains because the attack effectiveness does not explode as the dictionary size grows.
+
+\subsection{The Fundamental Security-Privacy Tradeoff}
+Connecting the utility and security analysis from Section \ref{subsec: freq_estim_eval} and Section \ref{subsec: freq_estim_attacks_eval}, reveals a fundamental contradiction. In all gain equations shown in Table \ref{tab:comparison}, the dominant term is proportional to the inverse of the privacy budget:
+$$G_{\text{MGA}} \propto \frac{1}{e^\epsilon -1}$$
+
+This creates a non-intuitive paradox that mechanisms designed to be more private are inherently more vulnerable to poisoning. Mathematically, as we strengthen privacy (lowering $\epsilon \to 0$), the denominator $(e^\epsilon - 1)$ approaches 0, causing the Attack Gain $G$ to grow asymptotically.
+

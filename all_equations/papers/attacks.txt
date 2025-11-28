@@ -1,0 +1,1126 @@
+                Data Poisoning Attacks to Local Differential Privacy Protocols
+
+                                     Xiaoyu Cao, Jinyuan Jia, Neil Zhenqiang Gong
+                                                     Duke University
+                                     {xiaoyu.cao, jinyuan.jia, neil.gong}@duke.edu
+
+
+
+                          Abstract                                   silience against untrusted data collectors, LDP has attracted in-
+                                                                     creasing attention in both academia and industry. Speciﬁcally,
+Local Differential Privacy (LDP) protocols enable an un-
+                                                                     many LDP protocols [8–10,15,18,22,31–33,45,47,59–63,69]
+trusted data collector to perform privacy-preserving data an-
+                                                                     have been developed in the past several years. Moreover, some
+alytics. In particular, each user locally perturbs its data to
+                                                                     of these protocols have been widely deployed in industry in-
+preserve privacy before sending it to the data collector, who
+                                                                     cluding but not limited to Google, Microsoft, and Apple. For
+aggregates the perturbed data to obtain statistics of interest. In
+                                                                     instance, Google deployed LDP [22] in the Chrome browser to
+the past several years, researchers from multiple communities–
+                                                                     collect users’ default homepages for Chrome; Microsoft [17]
+such as security, database, and theoretical computer science–
+                                                                     integrated LDP in Windows 10 to collect application usage
+have proposed many LDP protocols. These studies mainly fo-
+                                                                     statistics; and Apple [53] adopted LDP on iOS to identify pop-
+cused on improving the utility of the LDP protocols. However,
+                                                                     ular emojis, which are subsequently recommended to users.
+the security of LDP protocols is largely unexplored.
+                                                                        Since LDP perturbs each user’s data, it sacriﬁces utility of
+   In this work, we aim to bridge this gap. We focus on LDP
+                                                                     the data analytics results obtained by the data collector. There-
+protocols for frequency estimation and heavy hitter identiﬁ-
+                                                                     fore, existing studies on LDP mainly focused on improving
+cation, which are two basic data analytics tasks. Speciﬁcally,
+                                                                     the utility via designing new methods to encode/perturb users’
+we show that an attacker can inject fake users into an LDP
+                                                                     data and aggregate the perturbed data to derive statistical
+protocol and the fake users send carefully crafted data to the
+                                                                     results. However, the security of LDP is largely unexplored.
+data collector such that the LDP protocol estimates high fre-
+quencies for arbitrary attacker-chosen items or identiﬁes them          In this work, we aim to bridge this gap. In particular, we
+as heavy hitters. We call our attacks data poisoning attacks.        propose a family of attacks called data poisoning attacks to
+We theoretically and/or empirically show the effectiveness of        LDP protocols. In our attacks, an attacker injects fake users
+our attacks. We also explore three countermeasures against           to an LDP protocol and carefully crafts the data sent from the
+our attacks. Our experimental results show that they can effec-      fake users to the data collector, with the goal to manipulate the
+tively defend against our attacks in some scenarios but have         data analytics results as the attacker desires. Speciﬁcally, we
+limited effectiveness in others, highlighting the needs for new      focus on LDP protocols for Frequency Estimation and Heavy
+defenses against our attacks.                                        Hitter Identiﬁcation, which are two basic data analytics tasks
+                                                                     and are usually the ﬁrst step towards more advanced tasks.
+                                                                     The goal of frequency estimation is to estimate the fraction
+1    Introduction                                                    of users (i.e., frequency) that have a certain item for each of
+                                                                     a set of items, while the goal of heavy hitter identiﬁcation
+Various data breaches [1–3] have highlighted the challenges          is to only identify the top-k items that are the most frequent
+of relying on a data collector (e.g., Equifax) to protect users’     among the users without estimating the items’ frequencies.
+private data. Local Differential Privacy (LDP), a variant of         Our attacks can increase the estimated frequencies for arbi-
+differential privacy [19], aims to address such challenges. In       trary attacker-chosen items (called target items) in frequency
+particular, an LDP protocol encodes and perturbs a user’s data       estimation or promote them to be identiﬁed as top-k heavy hit-
+to protect privacy before sending it to the data collector, who      ters in heavy hitter identiﬁcation. Our attacks result in severe
+aggregates the users’ perturbed data to obtain statistics of         security threats to LDP-based data analytics. For example,
+interest. Therefore, even if the data collector is compromised,      an attacker can promote a phishing webpage as a popular
+user privacy is still preserved as the attacker only has access      default homepage of Chrome; an attacker can increase the
+to users’ privacy-preserving perturbed data. Because of the re-      estimated popularity of its (malicious) application when LDP
+is used to estimate application popularity; and an attacker can     target item. Our empirical results show that these counter-
+manipulate the identiﬁed and recommended popular emojis,            measures can effectively defend against our attacks in some
+resulting in bad user experience and frustration.                   scenarios. For example, when the attacker has 10 target items,
+   The major challenge of data poisoning attacks is that, given     normalization can reduce the frequency gain of our MGA to
+a limited number of fake users an attacker can inject, what data    OUE from 1.58 to 0.46 and detecting fake users can reduce
+the fake users should send to the data collector such that the      the frequency gain to be almost 0 because the data collector
+attack effectiveness is maximized. To address the challenge,        can detect almost all fake users. However, our attacks are still
+we formulate our attacks as an optimization problem, whose          effective in other scenarios. For instance, when the attacker
+objective function is to maximize the attack effectiveness and      has 10 randomly selected target items, our MGA to OLH still
+whose solution is the data that fake users should send to the       achieves a frequency gain of 0.43 even if both detecting fake
+data collector. We call our optimization-based attack Maximal       users and normalization are used. Our results highlight the
+Gain Attack (MGA). To better demonstrate the effectiveness          needs for new defenses against our attacks.
+of MGA, we also propose two baseline attacks in which the              In summary, our contributions are as follows:
+fake users send randomly crafted data to the data collector.        • We perform the ﬁrst systematic study on data poisoning
+Then, we apply our MGA and the baseline attacks to three               attacks to LDP protocols for frequency estimation and
+state-of-the-art LDP protocols for frequency estimation (i.e.,         heavy hitter identiﬁcation.
+kRR [33], OUE [59], and OLH [59]) and one state-of-the-art          • We show that, both theoretically and/or empirically, our
+LDP protocol for heavy hitter identiﬁcation (i.e., PEM [62]).          attacks can effectively increase the estimated frequencies
+   We theoretically evaluate the effectiveness of our attacks.         of the target items or promote them to be identiﬁed as
+Speciﬁcally, we derive the frequency gain of the target items,         heavy hitters.
+which is the difference of the target items’ estimated frequen-     • We explore three countermeasures to defend against our
+cies after and before an attack. Our theoretical analysis shows        attacks. Our empirical results highlight the needs for new
+that our MGA can achieve the largest frequency gain among              defenses against our attacks.
+possible attacks. Our theoretical results also show a funda-
+mental security-privacy tradeoff for LDP protocols: when an
+LDP protocol provides higher privacy guarantees, the LDP            2     Background and Related Work
+protocol is less secure against our attacks (i.e., the frequency
+gains are larger). Moreover, we observe that different LDP          We consider LDP protocols for two basic tasks, i.e., frequency
+protocols have different security levels against our attacks. For   estimation [10, 18, 22, 31–33, 59, 63, 64, 69] and heavy hit-
+instance, OUE and OLH have similar security levels against          ter identiﬁcation [9, 45, 62]. Suppose there are n users. Each
+our attacks, and kRR is less secure than OUE and OLH when           user holds one item from a certain domain, e.g., the default
+the number of items is larger than a threshold. We also empir-      homepage of a browser. We denote the domain of the items
+ically evaluate our attacks for both frequency estimation and       as {1, 2, · · · , d}. For conciseness, we simplify {1, 2, · · · , d} as
+heavy hitter identiﬁcation using a synthetic dataset and two        [d]. In frequency estimation, the data collector (also called cen-
+real-world datasets. Our empirical results also show the effec-     tral server) aims to estimate the frequency of each item among
+tiveness of our attacks. For example, on all the three datasets,    the n users, while heavy hitter identiﬁcation aims to identify
+our MGA can promote 10 randomly selected target items to            the top-k items that have the largest frequencies among the n
+be identiﬁed as top-15 heavy hitters when the attacker only         users. Frequency of an item is deﬁned as the fraction of users
+injects 5% of fake users.                                           who have the item.
+   We also explore three countermeasures, i.e., normalization,
+detecting fake users, and detecting the target item, to defend      2.1     Frequency Estimation
+against our attacks. Speciﬁcally, in normalization, the data
+collector normalizes the estimated item frequencies to be a         An LDP protocol for frequency estimation consists of three
+probability distribution, i.e., each estimated item frequency is    key steps: encode, perturb, and aggregate. The encode step
+non-negative and the estimated frequencies of all items sum         encodes each user’s item into some numerical value. We
+to 1. Since our attacks craft the data for the fake users via       denote the space of encoded values as D . The perturb step
+solving an optimization problem, the data from the fake users       randomly perturbs the value in the space D and sends the per-
+may follow certain patterns that deviate from genuine users.        turbed value to the central server. The central server estimates
+Therefore, in our second countermeasure, the data collector         item frequencies using the perturbed values from all users in
+aims to detect fake users via analyzing the statistical patterns    the aggregate step. For simplicity, we denote by PE(v) the
+of the data from the users, and the data collector ﬁlters the       perturbed encoded value for an item v. Roughly speaking, a
+detected fake users before estimating frequencies or identify-      protocol satisﬁes LDP if any two items are perturbed to the
+ing heavy hitters. The third countermeasure detects the target      same value with close probabilities. Formally, we have the
+item without detecting the fake users when there is only one        following deﬁnition:
+Deﬁnition 1 (Local Differential Privacy). A protocol A sat-           2.1.1   kRR
+isﬁes ε-local differential privacy (ε-LDP) if for any pair of
+items v1 , v2 ∈ [d] and any perturbed value y ∈ D , we have           Encode: kRR encodes an item v to itself. Therefore, the
+Pr(PE(v1 ) = y) ≤ eε Pr(PE(v2 ) = y), where ε > 0 is called           encoded space D for kRR is identical to the domain of items,
+privacy budget and PE(v) is the random perturbed encoded              which is D = [d].
+value of an item v.                                                   Perturb: kRR keeps an encoded item unchanged with a
+                                                                      probability p and perturbs it to a different random item a ∈ D
+   Moreover, an LDP protocol is called pure LDP if it satisﬁes        with probability q. Formally, we have:
+the following deﬁnition:                                                                        
+                                                                                                      eε
+                                                                                  Pr(y = a) =       d−1+eε  p,      if a = v,
+                                                                                                                                    (5)
+Deﬁnition 2 (Pure LDP [59]). An LDP protocol is pure if
+                                                                                                    d−1+eε  q,
+                                                                                                      1
+                                                                                                                     otherwise,
+there are two probability parameters 0 < q < p < 1 such that
+the following equations hold for any pair of items v1 , v2 ∈          where y is the random perturbed value sent to the central
+[d], v1 = v2 :                                                       server when a user’s item is v.
+                Pr(PE(v1 ) ∈ {y|v1 ∈ S(y)}) = p                (1)    Aggregate: The key for aggregation is to derive the support
+                                                                      set. A perturbed value y only supports itself for kRR. Specif-
+                Pr(PE(v2 ) ∈ {y|v1 ∈ S(y)}) = q,               (2)
+                                                                      ically, we have S(y) = {y}. Given the support set, we can
+                                                                      estimate item frequencies using Equation (3).
+where S(y) is the set of items that y supports.
+
+   We note that the deﬁnition of the support S(y) depends on          2.1.2   OUE
+the LDP protocol. For instance, for some LDP protocols [18,
+59], the support S(y) of a perturbed value y is the set of items      Encode: OUE encodes an item v to a d-bit binary vector e v
+whose encoded values could be y. For a pure LDP protocol,             whose bits are all zero except the v-th bit. The encoded space
+the aggregate step is as follows:                                     for OUE is D = {0, 1}d , where d is the number of items.
+                                 n                                    Perturb: OUE perturbs the bits of the encoded binary vec-
+                              n ∑ 1S(yi ) (v) − q
+                              1
+                                                                      tor independently. Speciﬁcally, for each bit of the encoded
+                                i=1
+                     f˜v =                          ,          (3)    binary vector, if it is 1, then it remains 1 with a probability p.
+                                    p−q
+                                                                      Otherwise if the bit is 0, it is ﬂipped to 1 with a probability q.
+                                                                      Formally, we have:
+where f˜v is the estimated frequency for item v ∈ [d], yi is the
+                                                                                                   
+perturbed value from the ith user, and 1S(yi ) (v) is an character-
+                                                                                                       2  p,       if i = v,
+                                                                                                       1
+istic function, which outputs 1 if and only if yi supports item                     Pr(yi = 1) =                                    (6)
+                                                                                                       eε +1  q,
+                                                                                                          1
+                                                                                                                    otherwise,
+v. Formally, the characteristic function 1S(yi ) (v) is deﬁned as
+follows: 1S(y) (v) is 1 if v ∈ S(y) and 0 otherwise.                  where the vector y = [y1 y2 · · · yd ] is the perturbed value for
+   Roughly speaking, Equation (3) means that the frequency            a user with item v.
+of an item is estimated as the fraction of users whose per-
+turbed values support the item normalized by p, q, and n.             Aggregate: A perturbed value y supports an item v if and
+Pure LDP protocols are unbiased estimators of the item fre-           only if the v-th bit of y , denoted as yv , equals to 1. Formally,
+quencies [59], i.e., E[ f˜v ] = fv , where fv is the true frequency   we have S(y ) = {v|v ∈ [d] and yv = 1}.
+for item v. Therefore, we have:
+                n                                                     2.1.3   OLH
+                ∑ E[1S(y ) (v)] = n( fv (p − q) + q).
+                          i
+                                                               (4)
+               i=1                                                    Encode: OLH leverages a family of hash functions H, each of
+                                                                      which maps an item v ∈ [d] to a value h ∈ [d  ], where d  < d.
+   Equation (4) will be useful for the analysis of our attacks.       In particular, OLH uses d  = eε + 1 as it achieves the best
+Next, we describe three state-of-the-art pure LDP protocols,          performance [59]. An example of the hash function family
+i.e., kRR [18], OUE [59], and OLH [59]. These three protocols         H could be xxhash [14] with different seeds. Speciﬁcally,
+are recommended for use in different scenarios. Speciﬁcally,          a seed is a non-negative integer and each seed represents
+kRR achieves the smallest estimation errors when the number           a different xxhash hash function. In the encode step, OLH
+of items is small, i.e., d < 3eε + 2. When the number of items        randomly picks a hash function H from H. When xxhash
+is large, both OUE and OLH achieve the smallest estimation            is used, randomly picking a hash function is equivalent to
+errors. OUE has a larger communication cost, while OLH                randomly selecting a non-negative integer as a seed. Then,
+has a larger computation cost for the central server. There-          OLH computes the hash value of the item v as h = H(v). The
+fore, when the communication cost is a bottleneck, OLH is             tuple (H, h) is the encoded value for the item v. The encoded
+recommended, otherwise OUE is recommended.                            space for OLH is D = {(H, h)|H ∈ H and h ∈ [d  ]}.
+Perturb: OLH only perturbs the hash value h and does not                 2.3    Data Poisoning Attacks
+change the hash function H. In particular, the hash value stays
+unchanged with probability p and switches to a different                Data poisoning attacks to LDP protocols: A concurrent
+value in [d  ] with probability q . Formally, we have:                 work [13] studied untargeted attacks to LDP protocols. In
+                                                                         particular, they focused on degrading the overall performance
+                                                                        of frequency estimation or heavy hitter identiﬁcation. For
+                                    eε        
+         Pr(y = (H, a)) =       eε +d  −1  p ,   if a = H(v),
+                                                                  (7)    instance, we can represent the estimated frequencies of all
+                                              
+                                eε +d  −1  q ,
+                                    1
+                                                   otherwise,            items as a vector, where an entry corresponds to an item. They
+                                                                         studied how an attack can manipulate the L p -norm distance
+where y is the perturbed value sent to the central server from a         between such vectors before and after attack. In contrast,
+user with item v. Therefore, the overall probability parameters          we study targeted attacks that aim to increase the estimated
+                         eε
+p and q are p = p = eε +d                                 
+                            −1 and q = d  · p +(1− d  )·q = d  .
+                                        1            1         1         frequencies of the attacker-chosen target items or promote
+                                                                         them to be identiﬁed as heavy hitters. We note that the L p -
+Aggregate: A perturbed value y = (H, h) supports an item                 norm distance between the item frequency vectors is different
+v ∈ [d] if v is hashed to h by H. Formally, we have S(y) =               from the increased estimated frequencies for the target items.
+{v|v ∈ [d] and H(v) = h}.                                                For instance, L1 -norm distance between the item frequency
+                                                                         vectors is a loose upper bound of the increased estimated
+                                                                         frequencies for the target items.
+2.2    Heavy Hitter Identiﬁcation                                        Data poisoning attacks to machine learning: A line of
+                                                                         works [7, 11, 23–25, 27–30, 35–39, 41–44, 49, 50, 58, 65] stud-
+The goal of heavy hitter identiﬁcation [9, 10, 62] is to identify        ied data poisoning attacks to machine learning systems. In
+the top-k items that are the most frequent among the n users.            particular, the attacker manipulates the training data such
+A direct and simple solution is to ﬁrst estimate the frequency           that a bad model is learnt, which makes predictions as the at-
+of each item using a frequency estimation protocol and then              tacker desires. For instance, Biggio et al. [11] investigated data
+select the k items with the largest frequencies. However, such           poisoning attacks against Support Vector Machines. Jagiel-
+method is not scalable to a large number of items. In response,          ski et al. [29] studied data poisoning attacks to regression
+a line of works [9, 10, 62] developed protocols to identify              models. Shafahi et al. [50] proposed poisoning attacks to
+heavy hitters without estimating item frequencies. For ex-               neural networks, where the learnt model makes incorrect
+ample, Bassily et al. [9] and Wang et al. [62] independently             predictions only for target testing examples. Gu et al. [27]
+developed a similar heavy hitter identiﬁcation protocol, which           and Liu et al. [36] proposed data poisoning attacks (also
+divides users into groups and iteratively applies a frequency            called backdoor/trojan attacks) to neural networks, where
+estimation protocol to identify frequent preﬁxes within each             the learnt model predicts an attacker-chosen label for test-
+group. Next, we take the Preﬁx Extending Method (PEM) [62],              ing examples with a certain trigger. Data poisoning attacks
+a state-of-the-art heavy hitter identiﬁcation protocol, as an            were also proposed to spam ﬁlters [41], recommender sys-
+example to illustrate the process.                                       tems [24, 25, 35, 65], graph-based methods [55], etc.. Our data
+    In PEM, each user encodes its item as a γ-bits binary vec-           poisoning attacks are different from these attacks because
+tor. Suppose users are evenly divided into g groups. In the              how LDP protocols aggregate the users’ data to estimate fre-
+ jth iteration, users in the jth group   use the OLH    protocol       quencies or identify heavy hitters is substantially different
+                                             γ−log2 k                  from how a machine learning system aggregates training data
+to perturb the ﬁrst λ j = log2 k + j ·         g       bits of their
+                                                                         to derive a model.
+binary vectors and send the perturbed bits to the central server,
+which uses the aggregate step of the OLH protocol to esti-
+mate the frequencies of the preﬁxes that extend the previous             3     Attacking Frequency Estimation
+top-k preﬁxes. OLH instead of OUE is used because the num-
+ber of items corresponding to λ j bits is 2λ j , which is often          3.1    Threat Model
+large and incurs large communication costs for OUE. Specif-
+ically, the central server uses the aggregate step of OLH to             We characterize our threat model with respect to an attacker’s
+estimate the frequencies of the λ j -bits preﬁxes in the set             capability, background knowledge, and goal.
+R j−1 × {0, 1}λ j −λ j−1 , where R j−1 is the set of top-k λ j−1 -bits   Attacker’s capability and background knowledge: We as-
+preﬁxes identiﬁed in the ( j − 1)th iteration and the × symbol           sume an attacker can inject some fake users into an LDP
+denotes Cartesian product. After estimating the frequencies              protocol. These fake users can send arbitrary data in the en-
+of these λ j -bits preﬁxes, the central server identiﬁes the top-k       coded space to the central server. Speciﬁcally, we assume
+most frequent ones, which are denoted as the set R j . This pro-         n genuine users and the attacker injects m fake users to the
+cess is repeated for the g groups and the set of top-k preﬁxes           system. Therefore, the total number of users becomes n + m.
+in the ﬁnal iteration are identiﬁed as the top-k heavy hitters.          We note that it is a practical threat model to assume that an
+attacker can inject fake users.In particular, previous measure-           of the LDP protocol uniformly at random for each fake user
+ment study [54] showed that attackers can easily have access              and sends it to the server. RPA does not consider any informa-
+to a large number of fake/compromised accounts in various                 tion about the target items. RIA selects a target item from the
+web services such as Twitter, Google, and Hotmail. Moreover,              set of target items uniformly at random for each fake user and
+an attacker can buy fake/compromised accounts for these                   uses the LDP protocol to encode and perturb the item. MGA
+web services from merchants in the underground market with                crafts the perturbed value for each fake user to maximize the
+cheap prices. For instance, a Hotmail account costs $0.004 –              overall gain G via solving the optimization problem in Equa-
+0.03; and a phone veriﬁed Google account costs $0.03 – 0.50               tion (8). RPA and RIA are two baseline attacks, which are
+depending on the merchants.                                               designed to better demonstrate the effectiveness of MGA.
+   Since an LDP protocol executes the encode and perturb                  Random perturbed-value attack (RPA): For each fake
+steps locally on users’ side, the attacker has access to the              user, RPA selects a value from the encoded space of the LDP
+implementation of these steps. Therefore, the attacker knows              protocol uniformly at random and sends it to the server.
+various parameters of the LDP protocol. In particular, the
+                                                                          Random item attack (RIA): Unlike RPA, RIA considers in-
+attacker knows the domain size d, the encoded space D , and
+                                                                          formation about the target items. In particular, RIA randomly
+the support set S(y) for each perturbed value y ∈ D .
+                                                                          selects a target item from the set of target items for each fake
+Attacker’s goal: We consider the attacker’s goal is to pro-               user. Then, the LDP protocol is applied to encode and perturb
+mote some target items, i.e., increase the estimated frequen-             the item. Finally, the perturbed value is sent to the server.
+cies of the target items. For example, a company may be
+                                                                          Maximal gain attack (MGA): The idea behind this attack is
+interested in making its products more popular. Formally,
+                                                                          to craft the perturbed values for the fake users via solving the
+we denote by T = {t1 ,t2 , · · · ,tr } the set of r target items. To      optimization problem in Equation (8). Speciﬁcally, according
+increase the estimated frequencies of the target items, the at-           to Equation (3), the frequency gain Δ f˜t for a target item t is:
+tacker carefully crafts the perturbed values sent from the fake
+users to the central server. We denote by Y the set of crafted                                    n+m                            n
+                                                                                             1
+                                                                                            n+m     ∑ 1S(yi ) (t) − q         n ∑ 1S(yi ) (t) − q
+                                                                                                                              1
+perturbed values for the fake users, where an entry yi of Y                                        i=1                          i=1
+                                                                                  Δ f˜t =                                −                             (9)
+is the crafted perturbed value for a fake user. The perturbed                                         p−q                             p−q
+value yi could be a number (e.g., for kRR protocol), a binary                                n+m                         n
+                                                                                              ∑ 1S(yi ) (t)           m ∑ 1S(yi ) (t)
+vector (e.g., for OUE), and a tuple (e.g., for OLH).                                        i=n+1                       i=1
+   Suppose f˜t,b and f˜t,a are the frequencies estimated by the                       =                          −                         ,          (10)
+                                                                                            (n + m)(p − q)           n(n + m)(p − q)
+LDP protocol for a target item t before and after attack, re-
+spectively. We deﬁne the frequency gain Δ f˜t for a target item           where yi is the perturbed value sent from user i to the server.
+t as Δ f˜t = f˜t,a − f˜t,b , ∀t ∈ T . A larger frequency gain Δ f˜t im-   The ﬁrst term in Equation (10) only depends on fake users,
+plies a more successful attack. Note that an LDP protocol                 while the second term only depends on genuine users. More-
+perturbs the value on each genuine user randomly. Therefore,              over, the expected frequency gain for a target item t is:
+the frequency gain Δ f˜t is random for a given set of crafted
+                                                                                                  n+m                           n
+perturbed values Y for the fake users. Thus, we deﬁne the                                          ∑ E[1S(yi ) (t)]          m ∑ E[1S(yi ) (t)]
+attacker’s overall gain G using the sum of the expected fre-                       E[Δ f˜t ] =
+                                                                                                 i=n+1
+                                                                                                                        −      i=1
+                                                                                                                                                  ,   (11)
+quency gains for the target items, i.e., G(Y) = ∑t∈T E[Δ f˜t ],                                   (n + m)(p − q)              n(n + m)(p − q)
+where Δ f˜t implicitly depends on Y. Therefore, an attacker’s
+goal is to craft the perturbed values Y to maximize the over-             where we denote the second term as a constant ct for simplic-
+all gain. Formally, the attacker aims to solve the following              ity. Moreover, based on Equation (4), we have:
+optimization problem:                                                                                        m( ft (p − q) + q)
+                                                                                                    ct =                        ,                     (12)
+                            max    G(Y).                           (8)                                        (n + m)(p − q)
+                             Y
+
+   We note that, to incorporate the different priorities of the           where ft is the true frequency of t among the n genuine users.
+                                                                          Furthermore, we have the overall gain as follows:
+target items, an attacker could also assign different weights to
+the expected frequency gains E[Δ f˜t ] of different target items                                         n+m
+when calculating the overall gain. Our attacks are also appli-                                           ∑     ∑ E[1S(yi ) (t)]
+                                                                                                      i=n+1 t∈T
+cable to such scenarios. However, for simplicity, we assume                                   G=                                    − c,              (13)
+                                                                                                          (n + m)(p − q)
+the target items have the same priority.
+                                                                                                    fT (p−q)+rq)
+                                                                          where c = ∑t∈T ct = m((n+m)(p−q)       , where fT = ∑t∈T ft . c
+3.2    Three Attacks                                                      does not depend on the perturbed values sent from the fake
+                                                                          users to the central server. In RPA and RIA, the crafted per-
+We propose three attacks: Random perturbed-value attack                   turbed values for the fake users are random. Therefore, the
+(RPA), random item attack (RIA), and Maximal gain attack                  expectation of the characteristic function E[1S(yi ) (t)] and the
+(MGA). RPA selects a perturbed value from the encoded space               overall gain depend on such randomness. However, MGA
+uses the optimal perturbed values for fake users, and the char-      Maximal gain attack (MGA): For each fake user, MGA
+acteristic function 1S(yi ) (t) becomes deterministic. Therefore,    crafts its perturbed value by solving the optimization prob-
+for MGA, we can drop the expectation E in Equation (13), and         lem in Equation (15). For the kRR protocol, we have
+then we can transform the optimization problem in Equation           ∑t∈T 1S(y) (t) ≤ 1 and ∑t∈T 1S(y) (t) = 1 when y is a target
+(8) as follows:                                                      item in T . Therefore, MGA picks any target item for each
+                                           n+m                       fake user. Moreover, according to Equation (13), the overall
+      Y∗ = arg max G(Y) = arg max
+              Y                  Y
+                                            ∑ ∑ 1S(y ) (t),
+                                                        i
+                                                              (14)   gain is G = (n+m)(p−q)
+                                                                                       m
+                                                                                             − c.
+                                           i=n+1 t∈T
+
+where we remove the constants c and (n + m)(p − q) in the op-
+timization problem. Note that the above optimization problem         3.4    Attacking OUE
+only depends on the perturbed values of the fake users, and          Random perturbed-value attack (RPA): For each fake user,
+the perturbed values yi for the fake users are independent from
+                                                                     RPA selects a d-bits binary vector y i from the encoded space
+each other. Therefore, we can solve the optimization prob-
+lem independently for each fake user. Formally, for each fake        {0, 1}d uniformly at random as its perturbed vector and sends
+user, we craft its perturbed value y∗ via solving the following      it to the server. We denote by yi, j the j-th bit of the per-
+optimization problem:                                                turbed vector y i . Therefore, for each target item t ∈ T , we
+                                                                     have E[1S(y i ) (t)] = Pr(yi,t = 1) = 12 . According to Equation
+                     y∗ = arg max ∑ 1S(y) (t).                (15)   (13), we can obtain the overall gain as G = 2(n+m)(p−q)
+                                                                                                                          rm
+                                                                                                                                − c.
+                             y∈D     t∈T
+                                                                     Random item attack (RIA): For each fake user, RIA ran-
+   We note that, for each fake user, we obtain its perturbed
+                                                                     domly selects a target item ti ∈ T , encodes it to a d-bits binary
+value via solving the same above optimization problem. How-          vector ei whose bits are all zeros except the ti -th bit, randomly
+ever, as we will show in the next sections, the optimization         perturbs ei following Equation (6), and sends the perturbed
+problem has many optimal solutions. Therefore, we randomly           vector y i to the server. For a target item t ∈ T , we can calculate
+pick an optimal solution for a fake user.                            the expected value of the characteristic function as follows:
+   Next, we discuss how to apply these three attacks to state-
+of-the-art LDP protocols including kRR, OUE, and OLH, as                          E[1S(y i ) (t)] = Pr(yi,t = 1)                    (22)
+well as analyzing their overall gains.                                                         = Pr(ti = t)Pr(yi,t = 1|ti = t)
+                                                                                               + Pr(ti = t)Pr(yi,t = 1|ti = t)    (23)
+3.3    Attacking kRR                                                                              1            1
+                                                                                               = · p + (1 − ) · q,                  (24)
+                                                                                                  r             r
+Random perturbed-value attack (RPA): For each fake user,
+RPA randomly selects a perturbed value yi from the encoded           where p and q are deﬁned in Equation (6). Therefore, the
+space, i.e., [d], and sends it to the server. We can calculate the   overall gain is G = (p+(r−1)q)m
+                                                                                         (n+m)(p−q) − c.
+expectation of the characteristic function for t ∈ T as follows:
+                                                                     Maximal gain attack (MGA): For each fake user, MGA
+             E[1S(yi ) (t)] = Pr(1S(yi ) (t) = 1)             (16)   chooses a perturbed vector y i that is a solution of the optimiza-
+                          = Pr(t ∈ S(yi )) = Pr(yi = t)       (17)   tion problem deﬁned in Equation (15). For OUE, we have
+                            1                                        ∑t∈T 1S(y i ) (t) ≤ r and ∑t∈T 1S(y i ) (t) = r is achieved when
+                          =                                   (18)   1S(y i ) (t) = 1, ∀t ∈ T . Thus, for each fake user, MGA initial-
+                            d
+                                                                     izes a perturbed vector yi as a binary vector of all 0’s and sets
+Therefore, according to Equation (13), the overall gain is
+                                                                     yi,t = 1 for all t ∈ T . However, if all fake users send the same
+G = d(n+m)(p−q)
+         rm
+                − c.
+                                                                     perturbed binary vector to the server, the server can easily
+Random item attack (RIA): For each fake user, RIA ran-               detect the fake users. For instance, there is only one entry in
+domly selects an item ti from the set of target items T , per-       the perturbed binary vector that has value 1 when we only
+turbs the item following the rule in Equation (5), and sends         have 1 target item; and the server could detect a vector with
+the perturbed item yi to the server. First, we can calculate the
+                                                                     only a single 1 to be from a fake user, because it is statistically
+expectation of the characteristic function as follows:
+                                                                     unlikely for a genuine user to send such a vector. Therefore,
+             E[1S(yi ) (t)] = Pr(yi = t)                      (19)   MGA also randomly samples l non-target bits of the perturbed
+                           = Pr(ti = t)Pr(yi = t|ti = t)             vector y i and sets them to 1. Speciﬁcally, we set l such that
+                                                                     the number of 1’s in the binary vector is the expected number
+                          + Pr(ti = t)Pr(yi = t|ti = t)     (20)
+                                                                     of 1’s in the perturbed binary vector of a genuine user. Since
+                             1            1
+                          = · p + (1 − )q,                    (21)   the perturbed binary vector of a genuine user has p + (d − 1)q
+                             r             r
+                                                                     1’s on average, we set l = p + (d − 1)q − r . Note that r is
+where r = |T | is the number of target items. According              usually much smaller than d, so l is a non-negative value. The
+to Equation (13), we can obtain the overall gain as G =              ﬁnal binary vector is sent to the server. According to Equation
+(p+(r−1)q)m
+ (n+m)(p−q) − c.                                                     (13), the overall gain is G = (n+m)(p−q)     − c.
+                                                                                                           rm
+                                                                          kRR                 OUE                   OLH
+                   Random perturbed-value attack (RPA)              β( dr − fT )            β(r − fT )              −β fT
+                         Random item attack (RIA)                    β(1 − fT )             β(1 − fT )            β(1 − fT )
+                                                                               β(d−r)
+                        Maximal gain attack (MGA)               β(1 − fT ) + eε −1      β(2r − fT ) + e2βr
+                                                                                                       ε −1   β(2r − fT ) + e2βr
+                                                                                                                             ε −1
+                                                                      √
+                                                                     r d−2+e √
+                                                                                ε              2reε/2√               2reε/2√
+                      Standard deviation of estimation                (eε −1) n              (eε −1) n             (eε −1) n
+
+Table 1: Overall gains of the three attacks for kRR, OUE, and OLH. n is the number of genuine users, β = n+m      m
+                                                                                                                     is the
+fraction of fake users among all users, d is the number of items, r is the number of target items, fT = ∑t∈T ft is the sum
+of true frequencies of the target items among the genuine users, ε is the privacy budget, and e is the base of the natural
+logarithm. To understand the signiﬁcance of the overall gains, we also include the standard deviations of the estimated
+total frequencies of the target items among the n genuine users [59] in the table.
+
+
+3.5    Attacking OLH                                                            p and q for each LDP protocol according to Section 2.1. Next,
+                                                                                we compare the three attacks, discuss a fundamental security-
+Random perturbed-value attack (RPA): For each fake user,                        privacy tradeoff, and compare the three LDP protocols with
+RPA randomly selects a hash function Hi ∈ H and a hash value                    respect to their security against our data poisoning attacks.
+ai ∈ [d  ], and sends the tuple yi = (Hi , ai ) to the server. For
+each t ∈ T , we have E[1S(y i ) (t)] = Pr(Hi (t) = ai ) = d1 . There-          Comparing the three attacks: All three attacks achieve
+fore, we can obtain the overall gain as G = d  (n+m)(p−q)
+                                                        rm
+                                                                 − c.           larger overall gains when the target items’ true frequencies
+                                                                                are smaller (i.e., fT is smaller). MGA achieves the largest
+Random item attack (RIA): For each fake user, RIA ran-                          overall gain among the three attacks. In fact, given an LDP
+domly selects a target item ti , randomly selects a hash function               protocol, a set of target items and fake users, MGA achieves
+Hi ∈ H, and calculates the hash value hi = Hi (ti ). The tuple                  the largest overall gain among all possible attacks. This is
+(Hi , hi ) is then perturbed as (Hi , ai ) according to Equation (7).
+                                                                                because MGA crafts the perturbed values for the fake users
+(Hi , ai ) is the perturbed value, i.e., yi = (Hi , ai ). We assume
+the hash function Hi maps any item in [d] to a value in [d  ]                  such that the overall gain is maximized. RIA achieves larger
+uniformly at random. For a target item t ∈ T , we can calculate                 overall gains than RPA for kRR and OLH, while RPA achieves
+the expectation of the characteristic function as follows:                      a larger overall gain than RIA for OUE.
+                                                                                   Table 1 also includes the standard deviations of the es-
+           E[1S(yi ) (t)] = Pr(Hi (t) = ai )                       (25)         timated total frequencies √  of the target items among the n
+                        = Pr(ti = t)Pr(Hi (t) = ai |ti = t)                     genuine users. Due to the n term in the denominators, the
+                        + Pr(ti = t)Pr(Hi (t) = ai |ti = t)      (26)         standard deviations are much smaller than the overall gains
+                                                                                of our MGA attacks. For instance, on the Zipf dataset in our
+                           1            1
+                        = · p + (1 − ) · q.                        (27)         experiments with the default parameter settings, the overall
+                           r            r
+                                                                                gains of MGA are 1600, 82, and 82 times larger than the
+Thus, the overall gain for RIA is G = [p+(r−1)q]m
+                                      (n+m)(p−q) − c.
+                                                                                standard deviations for kRR, OUE, and OLH, respectively.
+                                                                                Fundamental security-privacy tradeoffs: The security of
+Maximal gain attack (MGA): For each fake user, MGA
+                                                                                an LDP protocol is determined by the strongest attack (i.e.,
+chooses a perturbed value yi = (Hi , ai ) that is a solution of
+                                                                                MGA) to it. Intuitively, when the privacy budget ε is smaller
+the optimization problem deﬁned in Equation (15). For OLH,
+                                                                                (i.e., stronger privacy), genuine users add larger noise to their
+we have ∑t∈T 1S(yi ) (t) ≤ r and ∑t∈T 1S(yi ) (t) = r is achieved
+                                                                                data. However, the perturbed values that MGA crafts for the
+when the hash function Hi maps all items in T to ai , i.e.,
+                                                                                fake users do not depend on the privacy budget. As a result,
+Hi (t) = ai , ∀t ∈ T . Thus, for each fake user, MGA searches
+                                                                                the fake users contribute more towards the estimated item
+for a hash function Hi in H such that Hi (t) = ai , ∀t ∈ T holds.
+                                                                                frequencies, making the overall gain larger. In other words,
+Therefore, according to Equation (13), the overall gain is
+                                                                                we have a fundamental security-privacy tradeoff. Formally,
+G = (n+m)(p−q)
+          rm
+                  − c. Note that we may not be able to ﬁnd such
+                                                                                the following theorem shows such tradeoffs.
+a hash function in practice. In our experiments, for each fake
+user, we randomly sample 1,000 hash functions and use the                       Theorem 1 (Security-Privacy Tradeoff). For any of the three
+one that hashes the most target items to the same value.                        LDP protocols kRR, OUE, and OLH, when the privacy budget
+                                                                                ε is smaller (i.e., stronger privacy), MGA achieves a larger
+                                                                                overall gain G (i.e., weaker security).
+3.6    Theoretical Analysis
+                                                                                Proof. Table 1 shows that ε is in the denominator of the
+Table 1 summarizes the overall gains of the three attacks for                   overall gains for MGA. Therefore, the overall gains of MGA
+kRR, OUE, and OLH, where we have replaced the parameters                        increase as ε decreases.
+Comparing the security of the three LDP protocols: Ta-                                    Parameter     Default setting
+ble 1 shows that, when MGA is used, OUE and OLH achieve                                       β             0.05
+the same overall gain. Therefore, OUE and OLH have the                                        r               1
+same level of security against data poisoning attacks. The                                    fT            0.01
+following theorem shows that OUE and OLH are more secure                                      ε               1
+than kRR when the number of items is larger than a threshold.                                 k              20
+                                                                                              g              10
+Theorem 2. Suppose MGA is used. OUE and OLH are more
+secure than kRR when the number of items is larger than some                        Table 2: Default parameter settings.
+threshold, i.e., d > (2r − 1)(eε − 1) + 3r.
+                                                                         5     Evaluation
+Proof. See Appendix A.
+                                                                         5.1    Experimental Setup
+                                                                         Datasets: We evaluate our attacks on three datasets, in-
+4     Attacking Heavy Hitter Identiﬁcation                               cluding a synthetic dataset and two real-world datasets, i.e.,
+                                                                         Fire [4] and IPUMS [51].
+4.1    Threat model                                                      • Zipf: Following previous work on LDP protocols, we
+                                                                            generate random data following the Zipf’s distribution. In
+Attacker’s capability and background knowledge: We                          particular, we use the same parameter in the Zipf’s distri-
+make the same assumption on the attacker’s capability and                   bution as in [59]. By default, we synthesize a dataset with
+background knowledge as in attacking frequency estimation,                  1,024 items and 1,000,000 users.
+i.e., the attacker can inject fake users into the protocol and           • Fire [4]: The Fire dataset was collected by the San Fran-
+send arbitrary data to the central server.                                 cisco Fire Department, recording information about calls
+Attacker’s goal: We consider the attacker’s goal is to pro-                for service. We ﬁlter the records by call type and use the
+mote some target items, i.e., manipulate the heavy hitter iden-            data of type “Alarms”. We treat the unit ID as the item that
+tiﬁcation protocol to recognize the target items as top-k heavy            each user holds, which results in a total of 244 items and
+hitters. Formally, we denote by T = {t1 ,t2 , · · · ,tr } the set of r     548,868 users.
+target items, which are not among the true top-k heavy hitters.          • IPUMS [51]: The IPUMS dataset contains the US census
+We deﬁne success rate of an attack as the fraction of target                data over the years. We select the latest data of 2017 and
+items that are promoted to be top-k heavy hitters by the attack.            treat the city attribute as the item each user holds, which
+An attacker’s goal is to achieve a high success rate.                       results in a total of 102 items and 389,894 users.
+                                                                         Parameter setting: For frequency estimation, the overall
+                                                                         gains of our attacks may depend on β (the fraction of fake
+4.2    Attacks                                                           users), r and fT (the number of target items and their true
+                                                                         frequencies), ε (privacy budget), and d (number of items in
+State-of-the-art heavy hitter identiﬁcation protocols iteratively
+                                                                         the domain). For heavy hitter identiﬁcation, the success rates
+apply frequency estimation protocols. Therefore, we apply
+                                                                         of our attacks further depend on k (the number of items iden-
+the three attacks for frequency estimation to heavy hitter iden-
+                                                                         tiﬁed as heavy hitters) and g (the group size used by the
+tiﬁcation. Next, we use PEM as an example to illustrate how
+                                                                         PEM protocol). Table 2 shows the default settings for these
+to attack heavy hitter identiﬁcation protocols.
+                                                                         parameters, which we will use in our experiments unless other-
+    In PEM, each item is encoded by a γ-bits binary vector               wise mentioned. We will study the impact of each parameter,
+and users are randomly divided into g groups. On average,                while ﬁxing the remaining parameters to their default settings.
+                                       m
+each group contains a fraction of n+m     fake users. In the jth         Moreover, we use d  = eε + 1 in OLH as d  is an integer.
+iteration, PEM uses OLH to perturb the ﬁrst λ j bits of the
+binary vectors for users in the jth group and sends them to
+the central server. An attacker uses the RPA, RIA, or MGA to             5.2    Results for Frequency Estimation
+craft the data sent from the fake users to the central server by         Impact of different parameters: Table 1 shows the theoret-
+treating the ﬁrst λ j bits of the binary vectors corresponding           ical overall gains of the three attacks for the kRR, OUE, and
+to the target items as the “target items” in the jth iteration.          OLH protocols. We use these theoretical results to study the
+Such attacks can increase the likelihood that the ﬁrst λ j bits          impact of each parameter. Figures 1 to 3 show the impact of
+of the target items are identiﬁed as the top-k preﬁxes in the            different parameters on the overall gains and normalized over-
+ jth iteration, which in turn makes it more likely to promote            all gains. A normalized overall gain is the ratio between the
+the target items as top-k heavy hitters.                                 total frequencies of the target items after and before an attack,
+Figure 1: Impact of different parameters on the overall gains (ﬁrst row) and normalized overall gains (second row) of
+the three attacks for kRR.
+
+
+
+
+Figure 2: Impact of different parameters on the overall gains (ﬁrst row) and normalized overall gains (second row) of
+the three attacks for OUE.
+
+
+
+
+Figure 3: Impact of different parameters on the overall gains (ﬁrst row) and normalized overall gains (second row) of
+the three attacks for OLH.
+
+i.e., (G + fT )/ fT , where fT is the total true frequencies of the   the attacker injects more fake users, the attacker promotes
+target items. We observe that MGA outperforms RIA, which              more target items (except the kRR protocol), or the privacy
+outperforms RPA or achieves similar (normalized) overall              budget ε becomes smaller (i.e., security-privacy tradeoffs).
+gains with RPA. The reason is that MGA is an optimization-            The (normalized) overall gain of MGA decreases as the total
+based attack, RIA considers information of the target items,          true frequency of the target items (i.e., fT ) increases, though
+and RPA does not consider information about the target items.         the decrease of the overall gain is marginal. The (normalized)
+Next, we focus our analysis on MGA since it is the strongest          overall gain of MGA increases for kRR but keeps unchanged
+attack. The (normalized) overall gains of MGA increase as             for OUE and OLH as d increases. We note that, for a given
+Figure 4: Impact of different parameters on the success rates of the three attacks for PEM (heavy hitter identiﬁcation
+protocol). The ﬁrst row is on Zipf, the second row is on Fire, and the third row is on IPUMS.
+
+set of target items (i.e., fT is given), the trend of normalized
+overall gain is the same as that of the overall gain with respect
+to parameters β, r, ε, and d. Therefore, in the rest of the paper,
+we focus on overall gain for simplicity.
+Measuring RIA and MGA for OLH: The theoretical over-
+all gain of RIA for OLH is derived based on the “perfect”
+hashing assumption, i.e., an item is hashed to a value in the
+                                                                                    (a)                              (b)
+hash domain [d  ] uniformly at random. Practical hash func-
+tions may not satisfy this assumption. Therefore, the theoreti-      Figure 5: (a) Theoretical and practical overall gains of
+cal overall gain of RIA for OLH may be inaccurate in practice.       RIA for OLH. (b) Theoretical and practical overall gains
+We use xxhash [14] as hash functions to evaluate the gaps be-        of MGA for OLH on the IPUMS dataset as we sample
+tween the theoretical and practical overall gains. In particular,    more hash functions for each fake user, where r = 5.
+Figure 5a compares the theoretical and practical overall gains
+of RIA for OLH, where 1 item is randomly selected as target          5.3    Results for Heavy Hitter Identiﬁcation
+item, β = 0.05, and ε = 1. We observe that the theoretical and
+practical overall gains of RIA for OLH are similar.                  Figure 4 shows the empirical results of applying our three
+   Our theoretical overall gain of MGA for OLH is derived            attacks, i.e., RPA, RIA and MGA, to PEM on the Zipf, Fire,
+based on the assumption that the attacker can ﬁnd a hash             and IPUMS datasets, respectively. By default, we randomly
+function that hashes all target items to the same value. In          select r = 10 target items that are not identiﬁed as top-k heavy
+practice, we may not be able to ﬁnd such hash functions              hitters by PEM before attack and use the three attacks to
+within a given amount of time. Therefore, for each fake user,        promote them. Default values for the other parameters are
+we randomly sample some xxhash hash functions and use                identical to those in Table 2. The success rate of an attack
+the one that hashes the most target items to the same value.         is calculated as the fraction of target items that appear in
+Figure 5b compares the theoretical and practical overall gains       the estimated top-k heavy hitters. The results show that our
+of MGA for OLH on the IPUMS dataset as we sample more                MGA attacks can effectively compromise the PEM protocol.
+hash functions for each fake user, where we randomly select          In particular, we observe that MGA only needs about 5% of
+5 items as target items, i.e., r = 5. Our results show that the      fake users to achieve a 100% success rate when r = 10 and
+practical overall gains approach the theoretical ones with           k = 20. In fact, with only 5% of fake users, we can promote
+several hundreds of randomly sampled hash functions when             10 target items to be in the top-15 heavy hitters, or promote 15
+r = 5. We have similar observations for the other two datasets       target items to be in the top-20 heavy hitters. However, RPA
+and thus we omit their results due to the limited space.             and RIA are ineffective. Speciﬁcally, even if we inject 10%
+of fake users, neither RPA nor RIA can successfully promote
+even one of the target items to be in the top-k heavy hitters.                      User 1:
+Moreover, the number of groups g and the privacy budget ε
+have negligible impact on the effectiveness of our attacks.                         User 2:
+
+                                                                                    User 3:
+6     Countermeasures
+                                                                                    User 4:
+We explore three countermeasures. The ﬁrst countermeasure                 Figure 6: An example itemset that are all 1’s in 3 of the 4
+is to normalize the estimated item frequencies to be a prob-              binary vectors. Each column corresponds to an item.
+ability distribution, the second countermeasure is to detect
+fake users via frequent itemset mining of the users’ perturbed            or not the attacker follows the protocol to generate the per-
+values and remove the detected fake users before estimating               turbed value. Therefore, we study detecting fake users in the
+item frequencies, and the third countermeasure is to detect the           RPA and MGA attacks for the OUE and OLH protocols. Since
+target item without detecting the fake users when there is only           PEM iteratively applies OLH, we can also apply detecting
+one target item. The three countermeasures are effective in               fake users to PEM.
+some scenarios. However, our MGA is still effective in other
+                                                                          OUE: Recall that MGA assigns 1 to all target items and l
+scenarios, highlighting the needs for new defenses against our
+                                                                          randomly selected items in the perturbed binary vector for
+data poisoning attacks.
+                                                                          each fake user. Therefore, among the perturbed binary vectors
+                                                                          from the fake users, a set of items will always be 1. However,
+6.1    Normalization                                                      if the perturbed binary vectors follow the OUE protocol, it
+                                                                          is unlikely to observe that this set of items are all 1’s for a
+The LDP protocols estimate item frequencies using Equation                large number of users. Therefore, our idea to detect fake users
+(3). Therefore, the estimated item frequencies may not form a             consists of two steps. In the ﬁrst step, the server identiﬁes
+probability distribution, i.e., some estimated item frequencies           itemsets that are all 1’s in the perturbed binary vectors of a
+may be negative and they may not sum to 1. For instance, our              large number of users. In the second step, the server detects
+experimental results in Section 5.2 show that the overall gains           fake users if the probability that such large number of users
+of MGA may be even larger than 1. Therefore, one natural                  have these itemsets of all 1’s is small, when following OUE.
+countermeasure is to normalize the estimated item frequencies
+                                                                             Step I. In this step, the server identiﬁes itemsets that are
+such that each estimated item frequency is non-negative and
+                                                                          frequently all 1’s among the perturbed binary vectors. Figure 6
+the estimated item frequencies sum to 1. For instance, one
+                                                                          shows an example itemset that are all 1’s in 3 of the 4 binary
+normalization we consider is as follows: the central server
+                                                                          vectors. Identifying such itemsets is also known as frequent
+ﬁrst estimates the frequency f˜v for each item v following a
+                                                                          itemset mining [6]. In our problem, given the perturbed binary
+LDP protocol (kRR, OUE, or OLH); then the server ﬁnds
+                                                                          vectors from all users, frequent itemset mining can ﬁnd the
+the minimal estimated item frequency f˜min ; ﬁnally, the server
+                                                                          itemsets that are all 1’s in at least a certain number of users.
+calibrates the estimated frequency for each item v as f¯v =
+   f˜v − f˜min
+                                                                          Speciﬁcally, a frequent itemset mining method produces some
+∑v ( f˜v − f˜min )
+                   , where f¯v is the calibrated frequency. Our overall   tuples B = {(B, s)|s ≥ τ}, where B is an itemset and s is the
+gain is calculated by the difference between the calibrated               number of users whose perturbed binary vectors are 1’s for
+frequencies of the target items after and before attack. We note          all items in B.
+that there are also other methods to normalize the estimated                 Step II. In this step, we determine whether there are fre-
+item frequencies [31, 63], which we leave as future work.                 quent itemsets that are statistically abnormal. Speciﬁcally,
+Note that the normalization countermeasure is not applicable              we predict a tuple (B, s) ∈ B to be abnormal if s ≥ τz , where
+to heavy hitter identiﬁcation because normalization does not              z = |B| is the size of the itemset B. When an itemset is pre-
+impact the ranking of items’ frequencies.                                 dicted to be abnormal, we predict the items as the target items
+                                                                          and the users whose perturbed binary vectors are 1’s for all
+6.2    Detecting Fake Users                                               items in the itemset to be fake. The threshold τz achieves a
+                                                                          tradeoff between false positive rate and false negative rate of
+RPA and MGA directly craft the perturbed values for fake                  detecting fake users. Speciﬁcally, when τz is larger, a smaller
+users, instead of using the LDP protocol to generate the per-             number of genuine users are predicted as fake (i.e., a smaller
+turbed values from certain items. Therefore, the perturbed                false positive rate), while a larger number of fake users are
+values for the fake users may be statistically abnormal. We               not detected (i.e., a larger false negative rate). Therefore, a
+note that it is challenging to detect fake users via statistical          key challenge is how to select the threshold τz . We propose
+analysis of the perturbed values for the kRR protocol, because            to select the threshold such that the false positive rate is at
+the perturbed value of a user is just an item, no matter whether          most η. Speciﬁcally, given a threshold τz > (n + m)pqz−1 ,
+we can derive an upper bound of the false positive rate as                        f j 0.01 0.01 0.1 0.1 0.5 0.5 0.9 0.9
+(n+m)pqz−1 (1−pqz−1 )                                                              ft  0   0.01  0   0.01  0   0.01  0   0.01
+  [τz −(n+m)pqz−1 ]2
+                      (see Appendix B for details). Therefore,
+                                                                                  fˆu 0.25 0.26 0.18 0.19 0.18 0.18 0.18 0.19
+to guarantee that the false positive rate is at most η and achieve
+a small false negative rate, we select the smallest τz that sat-                                          (a) β = 0.05
+
+isﬁes τz > (n + m)pqz−1 and (n+m)pq
+                                          z−1 (1−pqz−1 )
+                                   [τz −(n+m)pqz−1 ]2
+                                                         ≤ η. We set              f j 0.01 0.01 0.1 0.1 0.5 0.5 0.9 0.9
+η = 0.01 in our experiments.                                                       ft  0   0.01  0  0.01 0   0.01  0   0.01
+                                                                                  fˆu 1.8 1.8 0.87 0.88 0.82 0.84 0.82 0.83
+OLH: To attack the OLH protocol, MGA searches a hash
+function for each fake user that hashes as many target items                                                 (b) β = 0.2
+to the same value as possible. Suppose we construct a d-                           Table 3: Threshold fˆu for different f j and ft .
+bit binary vector y for each user with a tuple (H, a) such
+that yv = 1 if and only if H(v) = a. Then, the target items
+                                                                                          Pr(yt = 1) = Pr(v = t) · Pr(yt = 1|v = t)
+will be 1’s in the binary vectors for a large number of users.
+                                                                                                     + Pr(v = t) · Pr(yt = 1|v = t)
+Therefore, we can also leverage the method to detect fake
+users in OLH. Speciﬁcally, in Step I, we ﬁnd frequent item-                                          + Pr(fake) · Pr(yt = 1|fake)                (30)
+sets in the constructed binary vectors. In Step II, we predict                                          n ft       n(1 − ft )      m
+                                                                                                     =        · p+            ·q+     ,          (31)
+an itemset B to be abnormal if its number of occurrences s                                             n+m           n+m          n+m
+among the n + m binary vectors is larger than a threshold                                           Pr(y j = yt = 1)
+                                                                               Pr(y j = 1|yt = 1) =                                              (32)
+τz , where z = |B| is the size of the itemset. Like OUE, we                                           Pr(yt = 1)
+select the threshold τz such that the false positive rate is at                                                          β
+                                                                                                         f j q(p − q) + 1−β      l
+                                                                                                                            · ( d−1 − q)
+most η. Speciﬁcally, we select the smallest τz that satisﬁes                                      =q +                              β
+                                                                                                                                             .   (33)
+I(qz−1 ; τz , n + m − τz + 1) ≤ η, where I is the regularized in-                                              ft p + (1 − ft )q + 1−β
+complete beta function [5]. I(qz−1 ; τz , n + m − τz + 1) is the
+                                                                             Given a non-target item u = j, we have the following:
+false positive rate for a given τz (see Appendix B for details).
+PEM: The heavy hitter identiﬁcation protocol PEM itera-                                   Pr(y j = yu = 1)
+tively applies OLH to identify heavy hitters. Therefore, we                           = Pr(v = u) · Pr(y j = yu = 1|v = u)
+can apply the frequent itemset mining based detection method                          + Pr(v = j) · Pr(y j = yu = 1|v = j)
+to detect fake users in PEM. Speciﬁcally, in each iteration of                        + Pr(v = j, u) · Pr(y j = yu = 1|v = j, u)
+PEM, the central server applies the detection method in OLH                           + Pr(fake) · Pr(y j = yu = 1|fake)                         (34)
+to detect fake users in PEM; and the central server removes
+                                                                                          n fu           nfj        n(1 − fu − f j ) 2
+the predicted fake users before computing the top-k preﬁxes.                          =         · pq +       · pq +                 ·q
+                                                                                         n+m           n+m              n+m
+                                                                                          m         l    l −1
+                                                                                      +        ·       ·      ,                                  (35)
+6.3    Conditional Probability based Detection                                          n+m d −1 d −2
+                                                                                        Pr(yu = 1)
+The frequent itemset mining based detection method above
+requires at least two target items as it identiﬁes the abnor-                         = Pr(v = u) · Pr(yu = 1|v = u)
+mal frequent itemset as the target items. When there is only                          + Pr(v = u) · Pr(yu = 1|v = u)
+one target item, i.e., r = 1, it fails to detect the target item.                     + Pr(fake) · Pr(yu = 1|fake)                               (36)
+Therefore, we discuss another method to detect the target item                            n fu       n(1 − fu )      m    l
+when r = 1, which leverages conditional probabilities. Note                           =         · p+            ·q+    ·     ,                   (37)
+                                                                                         n+m           n+m          n+m d −1
+that this method does not detect fake users.                                            Pr(y j = 1|yu = 1)
+OUE: Suppose y is a user’s perturbed binary vector. With a                                Pr(y j = yu = 1)
+little abuse of notation, we denote the j-th bit of y as y j . Given                  =                                                          (38)
+                                                                                            Pr(yu = 1)
+the target item t and a random item j, we have the following                                                   β     l      l−1
+equations under our MGA attacks to OUE:                                                        f j q(p − q) + 1−β · d−1 · ( d−2 − q)
+                                                                                      = q+                             β
+                                                                                                                                         .       (39)
+                                                                                                                             l
+                                                                                                  fu p + (1 − fu )q + 1−β · d−1
+       Pr(y j = yt = 1) = Pr(v = t) · Pr(y j = yt = 1|v = t)
+                       + Pr(v = j) · Pr(y j = yt = 1|v = j)                     Suppose both t and u are among the top-N items with the
+                       + Pr(v = t, j) · Pr(y j = yt = 1|v = t, j)          largest estimated frequencies. The true frequency ft for the
+                       + Pr(fake) · Pr(y j = yt = 1|fake)             (28)   target item t is small, since our attack aims to promote an
+                           n ft           nfj                                unpopular item. We have Pr(y j = 1|yt = 1) < Pr(y j = 1|yu =
+                       =        · pq +         · pq                          1) when fu is smaller than a threshold fˆu . Table 3 shows such
+                          n+m            n+m
+                         n(1 − ft − f j ) 2       m       l                  threshold for different values of f j and ft , where β = 0.05
+                       +                  ·q +        ·     ,         (29)   and β = 0.2. We observe that fu is highly likely smaller than
+                              n+m               n+m d −1
+        kRR               OUE                 OLH                           the countermeasures are effective in some scenarios. For ex-
+      No Norm No Norm Detect Both No Norm Detect Both
+ RPA 2e-3 -1e-3 0.50 2e-3 0.50 2e-3 -2e-3 -2e-3 -2e-3 -2e-3
+                                                                            ample, for OUE, combining the two countermeasures leads to
+ RIA 0.05 -4e-3 0.05 0.03   –    –    0.05 0.03   –     –                   an overall gain of -2e-16 for MGA, which means that the esti-
+ MGA 2.72 0.43 1.58 0.46 7e-17 -2e-16 1.18 0.43 1.18 0.43                   mated total frequency of the target items is even smaller than
+                                                                            the one before attack. However, the countermeasures are inef-
+Table 4: Overall gains of the three attacks on the IPUMS
+                                                                            fective in other scenarios. For instance, MGA can still achieve
+dataset after countermeasures are deployed. The column
+                                                                            a large overall gain of 0.43 for OLH even if both countermea-
+“No” means no countermeasure is used. The column
+                                                                            sures are used. Normalization can reduce the overall gains
+“Both” means the combined countermeasure. “–” means
+                                                                            of all the three attacks for the three protocols except RPA
+that the countermeasure is not applicable. Only normal-
+                                                                            for OLH. However, MGA still achieves large overall gains
+ization is applicable for kRR.
+                                                                            after normalization. Detecting fake users is ineffective for
+                                                                            RPA because RPA randomly samples perturbed values in the
+the threshold fˆu for a variety of f j when β = 0.2, as fˆu is              encoded space for the fake users and thus the perturbed values
+very large (sometimes even larger than 1). This observation                 do not have meaningful statistical patterns. When the counter-
+shows that if we randomly pick an item as j and compare                     measures are used, MGA is still the most effective attack in
+the conditional probabilities Pr(y j = 1|yu = 1) for each item              most cases. Therefore, we focus on MGA and further study
+u in the top-N items, then we can detect the item with the                  the impact of β and r on the countermeasure effectiveness.
+smallest conditional probability as the target item. However,               Impact of β and r on MGA: Figure 7a-7b show the impact
+when β = 0.05, the effectiveness of such detection method                   of β on the countermeasures against MGA when we ﬁx r = 10,
+depends on the true frequencies f j and fu .                                while Figure 7c-7d show the results for r when we ﬁx β =
+OLH: The conditional probability based detection method                     0.05 on the IPUMS dataset. First, we observe that for OUE,
+can also be used for OLH when r = 1. Speciﬁcally, we can                    detecting fake users and the combined countermeasure can
+construct a d-bit binary vector y for each user whose vth entry             effectively defend against the MGA attacks (i.e., reduce the
+yv = 1 if and only if H(v) = a, where (H, a) is the user’s                  overall gains to almost 0) when β and r are larger than some
+perturbed value. Assuming the hash function hashes an item                  thresholds, e.g., β > 0.001 and r ≥ 3. The countermeasures
+uniformly at random to a hash value in [d  ]. Then, we have                are ineffective when β or r is small (e.g., β ≤ 0.001 or r ≤ 2).
+the following conditional probabilities:
+                                                                            This is because the detection method relies on that the target
+                                         f j q(p − q)                       itemset is frequent and abnormal, but the target itemset is not
+        Pr(y j = 1|yt = 1) = q +                        β
+                                                             ,       (40)   frequent when β is small and is not abnormal among the users’
+                                   ft p + (1 − ft )q + 1−β
+                                                                            perturbed values when r is small.
+                                          f j q(p − q)                         Second, for OLH, detecting fake users and the combined
+        Pr(y j = 1|yu = 1) = q +                        β
+                                                                 .   (41)
+                                   fu p + (1 − fu )q + 1−β ·q               countermeasure can effectively defend against the MGA at-
+                                                                            tacks only when r is not too small nor large, e.g., 3 ≤ r ≤ 5
+                                                                            in our experiments. Recall that, to attack OLH, our MGA
+6.4      Experimental Results                                               randomly samples 1,000 hash functions and uses the one that
+                                                                            hashes the largest number of target items to the same value
+We empirically evaluate the effectiveness of the three coun-                for each fake user. When r ≤ 5, our MGA can ﬁnd a hash
+termeasures. Unless otherwise mentioned, we focus on nor-                   function that hashes all target items to the same value. There-
+malization and detecting fake users as the conditional proba-               fore, the target itemset is frequent among the users’ perturbed
+bility based detection is only applicable for one target item.              values. Moreover, when r ≥ 3, the frequent target itemset is
+Note that normalization and detecting fake users can also be                also abnormal. As a result, the detection method can detect
+used together. Speciﬁcally, the central server can ﬁrst detect              MGA when 3 ≤ r ≤ 5. When r ≥ 6, our MGA can only ﬁnd
+and remove the fake users, and then perform normalization.                  a hash function among the 1,000 random ones that hashes a
+Therefore, we will also evaluate the combined countermea-                   subset of the target items to the same value for each fake user.
+sure. We use the same default experimental setup as those                   In other words, each fake user essentially randomly picks a
+in Section 5.1. Moreover, we use the FP-growth algorithm                    subset of the target items and promotes them. Therefore, the
+implemented in the Python package mlxtend [46] to identify                  entire target itemset is not frequent enough and MGA evades
+frequent itemsets.                                                          detection. Our MGA evades detection for all the explored β
+                                                                            in Figure 7b because r = 10 in these experiments.
+6.4.1     Frequency Estimation                                              Adaptive MGA to OUE: Inspired by the evasiveness of
+                                                                            MGA to OLH, we can also adapt MGA to OUE that evades
+Overall results: Table 4 shows the experimental results with                detection. Speciﬁcally, for each fake user, instead of using a
+no countermeasure, normalization, detection, and combined                   perturbed value that supports all r target items, we randomly
+countermeasure, where β = 0.05 and r = 10. We observe that                  select r of the r target items and ﬁnd a perturbed value that
+          (a) OUE                    (b) OLH                     (c) OUE                   (d) OLH                (e) Adaptive MGA
+Figure 7: (a)-(b) Impact of β on the countermeasures against MGA when r = 10. (c)-(d) Impact of r on the countermea-
+sures against MGA when β = 0.05. (e) Impact of r on the adaptive MGA (MGA-A) to OUE when r = 10.
+
+                                                                       than that for OUE, e.g., fˆu = 0.18 for OLH and fˆu = 0.26 for
+                                                                       OUE when ft = f j = 0.01. Figure 8b shows the impact of β
+                                                                       on the detection rate, where we explore N = 1 to 20 to ﬁnd
+                                                                       the N that achieves the highest detection rate for each given
+                                                                       β. We observe that the detection rate increases as β increases,
+                                                                       which implies that the MGA attack with r = 1 is easier to
+                                                                       detect when there are more fake users. Once the target item
+               (a) N                           (b) β
+                                                                       is detected, the server can compute the sum of the estimated
+                                                                       frequencies of all non-target items as f˜U = ∑u=t f˜u and set the
+Figure 8: Impact of N and β on the detection rate of the
+                                                                       estimated frequency of the target item as f˜t = 1 − f˜U , which
+conditional probability based method for r = 1.
+                                                                       can reduce the overall gain of MGA. For instance, the overall
+                                                                       gain decreases from 2.37 to 0.095 for OLH when β = 0.1.
+supports the r selected target items. The adaptiveattack
+                                                        splits
+the frequency of the target itemset with size r to rr itemsets
+with size r , which becomes much harder to detect. We call            6.4.2   Heavy Hitter Identiﬁcation
+such adaptive attacks MGA-A. Figure 7e shows the impact
+of r on MGA-A to OUE when r = 10. We observe that our                 Normalization is ineffective for heavy hitter identiﬁcation
+adaptive MGA achieves smaller overall gains as r becomes              because normalization does not impact the ranking of the
+smaller when no countermeasures are deployed. However,                 items’ estimated frequencies. Moreover, the conditional prob-
+our adaptive MGA evades detection when r < r.                         ability based detection is only applicable to one target item.
+                                                                       Therefore, we perform experiments on detecting fake users
+Attack stealthiness: If the frequent itemset mining based
+                                                                       for heavy hitter identiﬁcation. Moreover, we focus on MGA
+detection method returns an abnormal frequent itemset, then
+                                                                       because RIA and RPA are ineffective even without detecting
+the central server predicts that it is under our MGA attack.
+                                                                       fake users (see Figures 4). We observe that detecting fake
+Our attack is stealthy if the central server cannot detect it. Our
+                                                                       users is effective in some scenarios but not in others. For
+results show that, for OUE, our MGA is stealthy when β or r
+                                                                       instance, when r = 5, detecting fake users can reduce the
+is small (e.g., β ≤ 0.001 or r ≤ 2), and our adaptive MGA is
+                                                                       success rate of MGA from 1 to 0, as all fake users can be
+stealthy when r < r. For OLH, our MGA is stealthy when r is
+                                                                       detected. However, when r = 10, our MGA can still achieve
+small or large enough, e.g., r ≤ 2 or r ≥ 6 in our experiments.
+                                                                       a success rate of 1.
+Conditional probability based detection for r = 1: We
+measure the effectiveness of the conditional probability based         6.5     Other Countermeasures
+detection method using detection rate. Speciﬁcally, in each
+experiment, we perform our MGA attack with a random target             Detecting fake users is related to Sybil detection in dis-
+item 50 times and the detection rate is the fraction of the 50         tributed systems and social networks. Many methods have
+experiment trials in which the target item is correctly detected.      been proposed to mitigate Sybil attacks. For instance, meth-
+Figure 8a shows the impact of N on the detection rate when             ods [12, 16, 26, 52, 56, 57, 67, 68] that leverage content, be-
+we ﬁx β = 0.05 on the IPUMS dataset. We observe that the               havior, and social graphs are developed to detect fake users
+detection rate ﬁrst increases and then decreases as N grows.           in social networks. Our detection method can be viewed as
+This is because when N is too small, e.g., N = 1, the target           a content-based method. Speciﬁcally, our detection method
+item is likely not in the top-N items; and when N is too large,        analyzes the statistical patterns of the user-generated content
+it’s more likely that there exists a non-target item in the top-N      (i.e., perturbed values sent to the central server) to detect fake
+items that has a smaller conditional probability than the target       users. However, our detection method is different from the
+item. We notice that the detection rate is lower for OLH than          content-based methods to detect fake users in social networks,
+for OUE. This is because the threshold fˆu for OLH is smaller          as the user-generated content and their statistical patterns dif-
+fer. Social-graph-based methods are inapplicable when the              untrusted server could carefully select a space of seeds or a
+social graphs are not available.                                       hash function that does not have collisions in the item domain.
+   Another countermeasure is to leverage Proof-of-Work [20],           For instance, a hash value h corresponds to a unique item.
+like how Sybil is mitigated in Bitcoin. In particular, before          When receiving a hash value h from a user, the server knows
+a user can participate in the LDP protocol, the central server         the user’s item, which breaks the LDP guarantee.
+sends a random string to the user; and the user is allowed to
+participate the LDP protocol after the user ﬁnds a string such         8   Conclusion
+that the cryptographic hash value of the concatenated string
+has a certain property, e.g., the ﬁrst 32 bits are all 0. However,     In this work, we perform the ﬁrst systematic study on data
+such method incurs a large computational cost for genuine              poisoning attacks to LDP protocols. Our results show that
+users, which impacts user experience. Moreover, when users             an attacker can inject fake users to an LDP protocol and
+use mobile devices such as phones and IoT devices, it is chal-         send carefully crafted data to the server such that the target
+lenging for them to perform the Proof-of-Work. Malicious-              items are estimated to have high frequencies or promoted as
+party-resistant SMPC could also be used to limit the impact            heavy hitters. We show that we can formulate such an attack
+of fake users (e.g., [40]). However, such methods generally            as an optimization problem, solving which an attacker can
+sacriﬁce computational efﬁciency.                                      maximize its attack effectiveness. We theoretically and/or
+                                                                       empirically show the effectiveness of our attacks. Moreover,
+                                                                       we explore three countermeasures against our attacks. Our
+7    Discussion                                                        empirical results show that these countermeasures have lim-
+                                                                       ited effectiveness in some scenarios, highlighting the needs
+Applicability to shufﬂing-based and SMPC-based proto-                  for new defenses against our attacks.
+cols: Shufﬂing-based protocols [21] apply shufﬂing to the                 Interesting future work includes generalizing our attacks
+users’ perturbed vectors such that a better DP guarantee can           to other LDP protocols, e.g., LDP protocols for itemset min-
+be derived. Since they still encode and perturb each user’s            ing [61] and key-value pairs [66], as well as developing new
+data, our attacks are applicable. When SMPC-based proto-               defenses to mitigate our attacks.
+cols have local encoding and perturbation steps like [34], our
+attacks are applicable and the security-privacy trade-off still
+holds. When there is no local encoding or perturbation step in         Acknowledgements
+the SMPC-based DP protocols like [48], our RPA and MGA
+are not applicable because an attacker cannot manipulate the           We thank the anonymous reviewers for their constructive com-
+perturbed vectors. However, our RIA is still applicable be-            ments. The conditional probability based detection method
+cause it only needs to modify the item value. In this case, we         for one target item was suggested by a reviewer. This work
+do not have the security-privacy trade-off because the overall         was supported by NSF grant No.1937786.
+gain of RIA does not rely on the privacy budget.
+RIA without perturbation: A variant of RIA is that a fake              References
+user samples one of the r target items randomly, encodes it,
+and sends the encoded value to the central server without               [1] Equifax Announces Cybersecurity Incident Involving
+perturbing it. When r = 1, this RIA variant has the same                    Consumer Information. http://bit.ly/2PEHuPk, 2017.
+overall gain as MGA. When r > 1, the RIA variant uses a fake
+                                                                        [2] A hacker gained access to 100 million Capital One credit
+user to promote only one target item. However, MGA uses
+                                                                            card applications and accounts. https://cnn.it/2WINTKV,
+a fake user to simultaneously promote multiple target items,
+                                                                            2019.
+which means that its overall gain is multiple times of the RIA
+variant’s overall gain. Moreover, it may be easy for the central        [3] In systemic breach, hackers steal millions of Bulgarians’
+server to detect the RIA variant for OUE. Speciﬁcally, the                  ﬁnancial data. https://reut.rs/2r6sMq3, 2019.
+server can count the number of 1’s in a vector from a user. If
+there is only one entry that is 1, then it is likely that the vector    [4] San francisco ﬁre department calls for service.
+is from a fake user as the probability that a genuine vector                http://bit.ly/336sddL, 2019.
+contains a single 1 is fairly small.
+                                                                        [5] Milton Abramowitz and Irene A Stegun. Handbook
+Defending OLH by restricting the hash functions: Since                      of mathematical functions: with formulas, graphs, and
+MGA to OLH relies on searching a hash function that maps                    mathematical tables. Courier Corporation, 1965.
+target items to the same hash value, the server could restrict
+the space of seeds of the hash function or select the hash              [6] Rakesh Agrawal, Tomasz Imieliński, and Arun Swami.
+function by itself to defend OLH against MGA. However, the                  Mining association rules between sets of items in large
+defense may break the privacy guarantees. In particular, an                 databases. In SIGMOD, 1993.
+ [7] Scott Alfeld, Xiaojin Zhu, and Paul Barford. Data poi-     [23] Minghong Fang, Xiaoyu Cao, Jinyuan Jia, and Neil
+     soning attacks against autoregressive models. In AAAI,          Gong. Local model poisoning attacks to byzantine-
+     2016.                                                           robust federated learning. In USENIX Security, 2020.
+ [8] Brendan Avent, Aleksandra Korolova, David Zeber,           [24] Minghong Fang, Neil Zhenqiang Gong, and Jia Liu. In-
+     Torgeir Hovden, and Benjamin Livshits. BLENDER:                 ﬂuence function based data poisoning attacks to top-n
+     Enabling local search with a hybrid differential privacy        recommender systems. In WWW, 2020.
+     model. In USENIX Security, 2017.
+                                                                [25] Minghong Fang, Guolei Yang, Neil Zhenqiang Gong,
+ [9] Raef Bassily, Kobbi Nissim, Uri Stemmer, and                    and Jia Liu. Poisoning attacks to graph-based recom-
+     Abhradeep Guha Thakurta. Practical locally private              mender systems. In ACSAC, 2018.
+     heavy hitters. In NeurIPS, 2017.
+                                                                [26] Neil Zhenqiang Gong, Mario Frank, and Prateek Mittal.
+[10] Raef Bassily and Adam Smith. Local, private, efﬁcient
+                                                                     Sybilbelief: A semi-supervised learning approach for
+     protocols for succinct histograms. In STOC, 2015.
+                                                                     structure-based sybil detection. TIFS, 2014.
+[11] Battista Biggio, Blaine Nelson, and Pavel Laskov. Poi-
+     soning attacks against support vector machines. In         [27] Tianyu Gu, Kang Liu, Brendan Dolan-Gavitt, and Sid-
+     ICML, 2012.                                                     dharth Garg. Badnets: Evaluating backdooring attacks
+                                                                     on deep neural networks. IEEE Access, 2019.
+[12] Qiang Cao, Xiaowei Yang, Jieqi Yu, and Christopher
+     Palow. Uncovering large groups of active malicious         [28] Ling Huang, Anthony D Joseph, Blaine Nelson, Ben-
+     accounts in online social networks. In CCS, 2014.               jamin IP Rubinstein, and J Doug Tygar. Adversarial
+                                                                     machine learning. In AISec, 2011.
+[13] Albert Cheu, Adam Smith, and Jonathan Ullman. Ma-
+     nipulation attacks in local differential privacy. arXiv,   [29] Matthew Jagielski, Alina Oprea, Battista Biggio, Chang
+     2019.                                                           Liu, Cristina Nita-Rotaru, and Bo Li. Manipulating ma-
+                                                                     chine learning: Poisoning attacks and countermeasures
+[14] Yann Collet. xxhash: Extremely fast hash algorithm.             for regression learning. In S&P, 2018.
+     https://github.com/Cyan4973/xxHash, 2016.
+[15] Graham Cormode, Tejas Kulkarni, and Divesh Srivas-         [30] Jinyuan Jia, Xiaoyu Cao, and Neil Zhenqiang Gong.
+     tava. Marginal release under local differential privacy.        Intrinsic certiﬁed robustness of bagging against data
+     In SIGMOD, 2018.                                                poisoning attacks. AAAI, 2021.
+
+[16] George Danezis and Prateek Mittal. Sybilinfer: Detect-     [31] Jinyuan Jia and Neil Zhenqiang Gong. Calibrate: Fre-
+     ing sybil nodes using social networks. In NDSS, 2009.           quency estimation and heavy hitter identiﬁcation with
+                                                                     local differential privacy via incorporating prior knowl-
+[17] Bolin Ding, Janardhan Kulkarni, and Sergey Yekhanin.            edge. In INFOCOM, 2019.
+     Collecting telemetry data privately. In NeurIPS, 2017.
+                                                                [32] Peter Kairouz, Keith Bonawitz, and Daniel Ramage. Dis-
+[18] John C Duchi, Michael I Jordan, and Martin J Wain-              crete distribution estimation under local privacy. In
+     wright. Local privacy and statistical minimax rates. In         ICML, 2016.
+     FOCS, 2013.
+                                                                [33] Peter Kairouz, Sewoong Oh, and Pramod Viswanath.
+[19] Cynthia Dwork, Frank McSherry, Kobbi Nissim, and
+                                                                     Extremal mechanisms for local differential privacy. In
+     Adam Smith. Calibrating noise to sensitivity in private
+                                                                     NeurIPS, 2014.
+     data analysis. In TCC, 2006.
+[20] Cynthia Dwork and Moni Naor. Pricing via processing        [34] Peter Kairouz, Sewoong Oh, and Pramod Viswanath.
+     or combatting junk mail. In CRYPTO, 1992.                       Secure multi-party differential privacy. In NeurIPS,
+                                                                     2015.
+[21] Úlfar Erlingsson, Vitaly Feldman, Ilya Mironov, Ananth
+     Raghunathan, Kunal Talwar, and Abhradeep Thakurta.         [35] Bo Li, Yining Wang, Aarti Singh, and Yevgeniy Vorob-
+     Ampliﬁcation by shufﬂing: From local to central differ-         eychik. Data poisoning attacks on factorization-based
+     ential privacy via anonymity. In SODA, 2019.                    collaborative ﬁltering. In NeurIPS, 2016.
+
+[22] Úlfar Erlingsson, Vasyl Pihur, and Aleksandra Korolova.    [36] Yingqi Liu, Shiqing Ma, Yousra Aafer, Wen-Chuan Lee,
+     Rappor: Randomized aggregatable privacy-preserving              Juan Zhai, Weihang Wang, and Xiangyu Zhang. Trojan-
+     ordinal response. In CCS, 2014.                                 ing attack on neural networks. In NDSS, 2018.
+[37] Shike Mei and Xiaojin Zhu. Using machine teaching to         [49] Benjamin IP Rubinstein, Blaine Nelson, Ling Huang,
+     identify optimal training-set attacks on machine learners.        Anthony D Joseph, Shing-hon Lau, Satish Rao, Nina
+     In AAAI, 2015.                                                    Taft, and J Doug Tygar. Antidote: understanding and
+                                                                       defending against poisoning of anomaly detectors. In
+[38] Mehran Mozaffari-Kermani, Susmita Sur-Kolay, Anand
+                                                                       IMC, 2009.
+     Raghunathan, and Niraj K Jha. Systematic poisoning
+     attacks on and defenses for machine learning in health-      [50] Ali Shafahi, W Ronny Huang, Mahyar Najibi, Octavian
+     care. IEEE journal of biomedical and health informatics,          Suciu, Christoph Studer, Tudor Dumitras, and Tom Gold-
+     2014.                                                             stein. Poison frogs! targeted clean-label poisoning at-
+[39] Luis Muñoz-González, Battista Biggio, Ambra Demon-                tacks on neural networks. In NeurIPS, 2018.
+     tis, Andrea Paudice, Vasin Wongrassamee, Emil C Lupu,
+                                                                  [51] Ruggles Steven, Flood Sarah, Goeken Ronald, Grover
+     and Fabio Roli. Towards poisoning of deep learning al-
+                                                                       Josiah, Meyer Erin, Pacas Jose, and Sobek Matthew.
+     gorithms with back-gradient optimization. In AISec,
+                                                                       Ipums usa: Version 9.0 [dataset]. minneapolis, mn:
+     2017.
+                                                                       Ipums, 2019.     https://doi.org/10.18128/D010.V9.0,
+[40] Moni Naor, Benny Pinkas, and Eyal Ronen. How to                   2019.
+     (not) share a password: Privacy preserving protocols for
+     ﬁnding heavy hitters with adversarial behavior. In CCS,      [52] Gianluca Stringhini, Christopher Kruegel, and Giovanni
+     2019.                                                             Vigna. Detecting spammers on social networks. In
+                                                                       ACSAC, 2010.
+[41] Blaine Nelson, Marco Barreno, Fuching Jack Chi, An-
+     thony D Joseph, Benjamin IP Rubinstein, Udam Saini,          [53] Apple Differential Privacy Team. Learning with privacy
+     Charles A Sutton, J Doug Tygar, and Kai Xia. Exploit-             at scale. Machine Learning Journal, 2017.
+     ing machine learning to subvert your spam ﬁlter. LEET,
+     2008.                                                        [54] Kurt Thomas, Damon McCoy, Chris Grier, Alek Kolcz,
+                                                                       and Vern Paxson. Trafﬁcking fraudulent accounts: The
+[42] Andrew Newell, Rahul Potharaju, Luojie Xiang, and                 role of the underground market in twitter spam and
+     Cristina Nita-Rotaru. On the practicality of integrity            abuse. In USENIX Security, 2013.
+     attacks on document-level sentiment analysis. In AISec,
+     2014.                                                        [55] Binghui Wang and Neil Zhenqiang Gong. Attacking
+[43] James Newsome, Brad Karp, and Dawn Song. Para-                    graph-based classiﬁcation via manipulating the graph
+     graph: Thwarting signature learning by training mali-             structure. In CCS, 2019.
+     ciously. In RAID workshop, 2006.
+                                                                  [56] Binghui Wang, Jinyuan Jia, and Neil Zhenqiang Gong.
+[44] Roberto Perdisci, David Dagon, Wenke Lee, Prahlad                 Graph-based security and privacy analytics via collec-
+     Fogla, and Monirul Sharif. Misleading worm signature              tive classiﬁcation with joint weight learning and propa-
+     generators using deliberate noise injection. In S&P,              gation. In NDSS, 2019.
+     2006.
+                                                                  [57] Gang Wang, Tristan Konolige, Christo Wilson, Xiao
+[45] Zhan Qin, Yin Yang, Ting Yu, Issa Khalil, Xiaokui Xiao,           Wang, Haitao Zheng, and Ben Y Zhao. You are how
+     and Kui Ren. Heavy hitter estimation over set-valued              you click: Clickstream analysis for sybil detection. In
+     data with local differential privacy. In CCS, 2016.               USENIX Security, 2013.
+[46] Sebastian Raschka. Mlxtend: Providing machine learn-
+                                                                  [58] Gang Wang, Tianyi Wang, Haitao Zheng, and Ben Y
+     ing and data science utilities and extensions to python’s
+                                                                       Zhao. Man vs. machine: Practical adversarial detec-
+     scientiﬁc computing stack. The Journal of Open Source
+                                                                       tion of malicious crowdsourcing workers. In USENIX
+     Software, 2018.
+                                                                       Security, 2014.
+[47] Xuebin Ren, Chia-Mu Yu, Weiren Yu, Shusen Yang,
+     Xinyu Yang, Julie A McCann, and S Yu Philip. LoPub:          [59] Tianhao Wang, Jeremiah Blocki, Ninghui Li, and
+     High-dimensional crowdsourced data publication with               Somesh Jha. Locally differentially private protocols
+     local differential privacy. TIFS, 2018.                           for frequency estimation. In USENIX Security, 2017.
+
+[48] Amrita Roy Chowdhury, Chenghong Wang, Xi He, Ash-            [60] Tianhao Wang, Bolin Ding, Jingren Zhou, Cheng Hong,
+     win Machanavajjhala, and Somesh Jha. Cryptε: Crypto-              Zhicong Huang, Ninghui Li, and Somesh Jha. Answer-
+     assisted differential privacy on untrusted servers. In            ing multi-dimensional analytical queries under local dif-
+     SIGMOD, 2020.                                                     ferential privacy. In SIGMOD, 2019.
+[61] Tianhao Wang, Ninghui Li, and Somesh Jha. Locally             items in a set B of size z, are all 1 in the perturbed binary
+     differentially private frequent itemset mining. In S&P,       vector as follows: Pr(yb = 1, ∀b ∈ B) = pqz−1 if v ∈ B and
+     2018.                                                         Pr(yb = 1, ∀b ∈ B) = qz otherwise, where yb is the bth bit of
+                                                                   the perturbed binary vector y and v is the user’s item. Let
+[62] Tianhao Wang, Ninghui Li, and Somesh Jha. Locally              fB = ∑b∈B fb denote the sum of true frequencies of all items
+     differentially private heavy hitter identiﬁcation. TDSC,      in B, X1 denote the random variable representing the number
+     2019.                                                         of users whose items are in B and whose perturbed binary
+                                                                   vectors are 1 for all items in B, and X2 denote the random vari-
+[63] Tianhao Wang, Milan Lopuhaä-Zwakenberg, Zitao Li,             able representing the number of users whose items are not in
+     Boris Skoric, and Ninghui Li. Locally differentially          B and whose perturbed binary vectors are 1 for all items in B.
+     private frequency estimation with consistency. In NDSS,       If all the n + m users follow the OUE protocol, then we have
+     2020.                                                         the following distributions: X1 ∼ Binom( fB (n + m), pqz−1 )
+                                                                   and X2 ∼ Binom((1 − fB )(n + m), qz ), where Binom is a bino-
+[64] Stanley L Warner. Randomized response: A survey               mial distribution. Now we consider another random variable
+     technique for eliminating evasive answer bias. Journal        X = X1 + X2 , which represents the number of users whose
+     of the American Statistical Association, 1965.                perturbed binary vectors are 1 for all items in B. X follows a
+                                                                   distribution with mean μ and variance Var as follows:
+[65] Guolei Yang, Neil Zhenqiang Gong, and Ying Cai. Fake
+     co-visitation injection attacks to recommender systems.                     μ = fB (n + m)pqz−1 + (1 − fB )(n + m)qz          (43)
+                                                                                                  z−1
+     In NDSS, 2017.                                                                ≤ (n + m)pq                                     (44)
+                                                                                                    z−1             z−1
+[66] Qingqing Ye, Haibo Hu, Xiaofeng Meng, and Huadi                           Var = fB (n + m)pq         (1 − pq            )
+     Zheng. Privkv: Key-value data collection with local                           + (1 − fB )(n + m)qz (1 − qz )                  (45)
+     differential privacy. In S&P, 2019.                                           ≤ (n + m)pq    z−1
+                                                                                                        (1 − pq   z−1
+                                                                                                                        ).         (46)
+[67] Haifeng Yu, Haifeng Yu, Michael Kaminsky, Phillip B           Based on the Chebyshev’s inequality, for any τz > (n +
+     Gibbons, and Abraham Flaxman. Sybilguard: defending           m)pqz−1 , we have:
+     against sybil attacks via social networks. In SIGCOMM,
+     2006.                                                                       Pr(X ≥ τz ) = Pr(X − μ ≥ τz − μ)
+[68] Dong Yuan, Yuanli Miao, Neil Zhenqiang Gong, Zheng                                      ≤ Pr(|X − μ| ≥ τz − μ)
+     Yang, Qi Li, Dawn Song, Qian Wang, and Xiao Liang.                                           Var
+                                                                                             ≤
+     Detecting fake accounts in online social networks at the                                  (τz − μ)2
+     time of registrations. In CCS, 2019.                                                        (n + m)pqz−1 (1 − pqz−1 )
+                                                                                             ≤                                     (47)
+                                                                                                   [τz − (n + m)pqz−1 ]2
+[69] Zhikun Zhang, Tianhao Wang, Ninghui Li, Shibo He,
+     and Jiming Chen. Calm: Consistent adaptive local              Here, if we choose τz as the threshold, the probability Pr(X ≥
+     marginal for marginal release under local differential        τz ) is the false positive rate, which is upper bounded by
+     privacy. In CCS, 2018.                                        (n+m)pqz−1 (1−pqz−1 )
+                                                                                         .
+                                                                     [τz −(n+m)pqz−1 ]2
+                                                                   OLH: As discussed in Section 6.2, we ﬁrst construct a d-bit
+A    Proof of Theorem 2                                            binary vector y for each user with a tuple (H, a) such that
+                                                                   yv = 1 if and only if H(v) = a. For an item set B of size z,
+Proof. Let β(1 − fT ) + β(d−r)                   2βr
+                         eε −1 > β(2r − f T ) + eε −1 , we have:   assume X is a random variable that represents the number of
+             d −r           2r    d − 3r                           users whose constructed binary vectors are 1’s for all items
+        1+          > 2r + ε   ⇐⇒ ε      > 2r − 1.         (42)    in B. If all the n + m users follow the OLH protocol, then for
+             eε − 1       e −1    e −1
+                                                                   any τz > 0, the probability that X ≥ τz is bounded as follows:
+Since eε > 1, the inequality above is equivalent to d > (2r −
+1)(eε − 1) + 3r.                                                             Pr(X ≥ τz ) = 1 − Pr(X ≤ τz − 1)
+                                                                                         = 1 − I(1 − qz−1 ; n + m − τz + 1, τz )
+B    FPRs of Detecting Fake Users                                                        = I(qz−1 ; τz , n + m − τz + 1)           (48)
+
+OUE: If a user’s perturbed binary vector y follows the             Note that if we set τz as the threshold, the probability Pr(X ≥
+OUE protocol, then we can calculate the probability that the       τz ) is the false positive rate.
+
