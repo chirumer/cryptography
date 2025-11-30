@@ -28,7 +28,7 @@ EQUATIONS = {
     "image3": {
         "name": "LDP for Perturb-Encode",
         "terms": [
-            (r"\text{PE}", r"\text{Perturb}(\text{Encode}(\cdot))"),
+            (r"PE", r"Perturb(Encode(.))"),
             (r"v_1, v_2", "Any two input values"),
             (r"y", "Perturbed output value"),
         ]

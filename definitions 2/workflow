@@ -1,0 +1,17 @@
+Create a markdown file that displays all the images in equations_svg folder
+
+Also, for each image, map it to one of the latex files in attack_gain_equations, equations, rapor_slide_eqns.
+Include the latex in the readme
+
+The equations are from @attacks.pdf @LDP_Freq_Est.pdf @rappor.pdf 
+
+For each equation, write brief description of the terms in latex (one term per line) and add it to the folder descriptions_latex
+
+Include these under the equation in the markdown file
+
+Use @latex_to_svg.py to convert all these latex descriptions into svg at descriptions_svg
+
+also display these description images under the corresponding equation in the markdown file.
+
+
+Do careful analysis to avoid hallucinating term descriptions. 

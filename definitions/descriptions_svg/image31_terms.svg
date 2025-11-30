@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2025-11-30T11:29:03.341288</dc:date>
+    <dc:date>2025-11-30T11:51:18.029173</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -31,8 +31,8 @@ z
   </g>
   <g id="axes_1">
    <g id="text_1">
-    <!-- $c : \text{Fraction of malicious users} \\  m : \text{Fake users} \\  n : \text{Genuine users}$ -->
-    <g transform="translate(160.29554 54.837343) scale(0.2 -0.2)">
+    <!-- $c : \text{Fraction of malicious users} \\  m : \text{Number of malicious users} \\  n : \text{Number of genuine users}$ -->
+    <g transform="translate(160.29554 52.787421) scale(0.2 -0.2)">
      <defs>
       <path id="CMMI12-63" d="M 2502 2431 
 C 2381 2431 2323 2431 2234 2355 
@@ -446,40 +446,56 @@ L 1107 1028
 L 1318 1871 
 z
 " transform="scale(0.015625)"/>
-      <path id="CMR17-6b" d="M 1670 1673 
-C 1664 1686 1632 1724 1632 1743 
-C 1632 1756 2086 2171 2144 2222 
-C 2509 2528 2739 2560 2906 2560 
-L 2906 2733 
-C 2867 2733 2854 2733 2848 2720 
-L 2534 2720 
-C 2355 2720 2080 2720 1907 2733 
-L 1907 2566 
-C 1997 2559 2061 2508 2061 2419 
-C 2061 2291 1933 2170 1926 2170 
-L 960 1289 
-L 960 4396 
+      <path id="CMR17-4e" d="M 1312 4250 
+C 1267 4320 1261 4320 1139 4320 
+L 326 4320 
+L 326 4160 
+L 448 4160 
+C 704 4160 819 4129 838 4122 
+L 838 610 
+C 838 451 838 153 326 153 
+L 326 -13 
+C 474 0 742 0 902 0 
+C 1062 0 1331 0 1478 -13 
+L 1478 153 
+C 966 153 966 451 966 610 
+L 966 4033 
+C 1011 3995 1011 3982 1056 3919 
+L 3430 76 
+C 3475 0 3494 0 3526 0 
+C 3590 0 3590 19 3590 139 
+L 3590 3705 
+C 3590 3863 3590 4160 4102 4160 
+L 4102 4326 
+C 3955 4320 3686 4320 3526 4320 
+C 3366 4320 3098 4320 2950 4326 
+L 2950 4160 
+C 3462 4160 3462 3862 3462 3703 
+L 3462 763 
+L 1312 4250 
+z
+" transform="scale(0.015625)"/>
+      <path id="CMR17-62" d="M 960 4396 
 L 198 4326 
 L 198 4160 
 C 576 4160 634 4122 634 3817 
-L 634 426 
-C 634 184 608 153 198 153 
-L 198 -13 
-C 352 0 634 0 794 0 
-C 954 0 1235 0 1389 -13 
-L 1389 153 
-C 979 153 954 178 954 428 
-L 954 1130 
-L 1395 1532 
-L 2042 574 
-C 2118 459 2182 369 2182 286 
-C 2182 172 2067 153 1990 153 
-L 1990 -13 
-C 2144 0 2419 0 2579 0 
-C 2694 0 2931 0 3040 0 
-L 3040 153 
-C 2739 153 2669 210 2477 491 
-L 1670 1673 
+L 634 -13 
+L 749 -13 
+L 934 441 
+C 1120 141 1395 -64 1766 -64 
+C 2406 -64 3053 500 3053 1370 
+C 3053 2188 2477 2790 1830 2790 
+C 1434 2790 1152 2579 960 2330 
+L 960 4396 
+z
+M 973 2004 
+C 973 2118 973 2138 1062 2272 
+C 1312 2657 1670 2688 1792 2688 
+C 1984 2688 2643 2585 2643 1376 
+C 2643 108 1888 38 1734 38 
+C 1536 38 1248 114 1043 486 
+C 973 608 973 621 973 735 
+L 973 2004 
 z
 " transform="scale(0.015625)"/>
       <path id="CMMI12-6e" d="M 1318 1871 
@@ -516,32 +532,42 @@ L 1107 1028
 L 1318 1871 
 z
 " transform="scale(0.015625)"/>
-      <path id="CMR17-47" d="M 3974 1233 
-C 3974 1473 3994 1505 4390 1505 
-L 4390 1670 
-C 4237 1664 3891 1664 3718 1664 
-C 3539 1664 3040 1664 2797 1664 
-L 2797 1505 
-L 2989 1505 
-C 3539 1505 3552 1434 3552 1201 
-L 3552 774 
-C 3552 63 2720 63 2522 63 
-C 1862 63 781 511 781 2160 
-C 781 3808 1843 4250 2464 4250 
-C 3187 4250 3712 3626 3834 2741 
-C 3846 2664 3846 2651 3904 2651 
-C 3974 2651 3974 2664 3974 2779 
-L 3974 4288 
-C 3974 4402 3968 4409 3930 4409 
-C 3904 4409 3898 4402 3853 4326 
-L 3571 3791 
-C 3258 4187 2874 4416 2381 4416 
-C 1286 4416 294 3456 294 2148 
-C 294 845 1267 -128 2394 -128 
-C 2912 -128 3418 56 3616 417 
-C 3725 158 3904 -20 3936 -20 
-C 3968 -20 3974 -13 3974 100 
-L 3974 1233 
+      <path id="CMR17-67" d="M 710 1164 
+C 832 1068 1043 960 1299 960 
+C 1805 960 2240 1357 2240 1888 
+C 2240 2054 2189 2310 1997 2509 
+C 2176 2692 2438 2752 2586 2752 
+C 2611 2752 2650 2752 2682 2734 
+C 2656 2728 2598 2703 2598 2605 
+C 2598 2527 2656 2471 2739 2471 
+C 2835 2471 2886 2533 2886 2614 
+C 2886 2731 2790 2854 2586 2854 
+C 2330 2854 2106 2738 1926 2580 
+C 1734 2753 1504 2816 1299 2816 
+C 794 2816 358 2419 358 1888 
+C 358 1522 570 1292 634 1228 
+C 442 1004 442 743 442 711 
+C 442 545 506 302 723 168 
+C 390 85 128 -169 128 -486 
+C 128 -943 736 -1280 1466 -1280 
+C 2170 -1280 2803 -956 2803 -479 
+C 2803 384 1856 384 1363 384 
+C 1216 384 954 384 922 391 
+C 723 423 589 602 589 826 
+C 589 883 589 1024 710 1164 
+z
+M 1299 1068 
+C 736 1068 736 1760 736 1889 
+C 736 2016 736 2708 1299 2708 
+C 1862 2708 1862 2016 1862 1889 
+C 1862 1760 1862 1068 1299 1068 
+z
+M 1466 -1171 
+C 826 -1171 384 -835 384 -486 
+C 384 -289 493 -105 634 -4 
+C 794 104 858 104 1293 104 
+C 1818 104 2547 104 2547 -486 
+C 2547 -835 2106 -1171 1466 -1171 
 z
 " transform="scale(0.015625)"/>
      </defs>
@@ -573,29 +599,50 @@ z
      <use xlink:href="#CMR17-73" transform="translate(1163.468551 0) scale(0.996264)"/>
      <use xlink:href="#CMMI12-6d" transform="translate(0 -70.181278) scale(0.996264)"/>
      <use xlink:href="#CMR17-3a" transform="translate(113.001233 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-46" transform="translate(165.5463 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-61" transform="translate(217.722892 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-6b" transform="translate(263.413369 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-65" transform="translate(309.103831 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-75" transform="translate(379.665457 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-73" transform="translate(430.560827 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-65" transform="translate(466.362165 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-72" transform="translate(506.847825 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMR17-73" transform="translate(542.128593 -70.181278) scale(0.996264)"/>
-     <use xlink:href="#CMMI12-6e" transform="translate(0 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-3a" transform="translate(85.904056 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-47" transform="translate(138.449123 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-65" transform="translate(210.804469 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-6e" transform="translate(251.29013 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-75" transform="translate(299.583046 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-69" transform="translate(350.478415 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-6e" transform="translate(375.349474 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-65" transform="translate(426.244844 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-75" transform="translate(496.80647 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-73" transform="translate(547.70184 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-65" transform="translate(583.503178 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-72" transform="translate(623.988838 -139.241516) scale(0.996264)"/>
-     <use xlink:href="#CMR17-73" transform="translate(659.269606 -139.241516) scale(0.996264)"/>
+     <use xlink:href="#CMR17-4e" transform="translate(165.5463 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(234.61873 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6d" transform="translate(285.5141 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-62" transform="translate(359.831236 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(413.329044 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-72" transform="translate(453.814705 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6f" transform="translate(519.171439 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-66" transform="translate(564.861916 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6d" transform="translate(622.411395 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-61" transform="translate(699.330985 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6c" transform="translate(745.021462 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-69" transform="translate(769.89252 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-63" transform="translate(794.763579 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-69" transform="translate(835.249239 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6f" transform="translate(860.120298 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(905.810775 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-73" transform="translate(956.706145 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(1022.583449 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-73" transform="translate(1073.478818 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(1109.280156 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-72" transform="translate(1149.765817 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMR17-73" transform="translate(1185.046584 -70.181278) scale(0.996264)"/>
+     <use xlink:href="#CMMI12-6e" transform="translate(0 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-3a" transform="translate(85.904056 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-4e" transform="translate(138.449123 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(207.521553 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6d" transform="translate(258.416923 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-62" transform="translate(332.734059 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(386.231867 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-72" transform="translate(426.717528 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6f" transform="translate(492.074262 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-66" transform="translate(537.764739 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-67" transform="translate(595.314218 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(641.004695 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6e" transform="translate(681.490355 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(729.783271 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-69" transform="translate(780.678641 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-6e" transform="translate(805.549699 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(856.445069 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-75" transform="translate(927.006696 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-73" transform="translate(977.902066 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-65" transform="translate(1013.703403 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-72" transform="translate(1054.189064 -140.362556) scale(0.996264)"/>
+     <use xlink:href="#CMR17-73" transform="translate(1089.469832 -140.362556) scale(0.996264)"/>
     </g>
    </g>
   </g>

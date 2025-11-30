@@ -15,7 +15,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image1_terms.svg`
 
 ![Terms](descriptions_svg/image1_terms.svg)
 
@@ -31,7 +30,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image2_terms.svg`
 
 ![Terms](descriptions_svg/image2_terms.svg)
 
@@ -47,7 +45,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image3_terms.svg`
 
 ![Terms](descriptions_svg/image3_terms.svg)
 
@@ -63,7 +60,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image4_terms.svg`
 
 ![Terms](descriptions_svg/image4_terms.svg)
 
@@ -79,7 +75,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image5_terms.svg`
 
 ![Terms](descriptions_svg/image5_terms.svg)
 
@@ -95,7 +90,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image6_terms.svg`
 
 ![Terms](descriptions_svg/image6_terms.svg)
 
@@ -111,7 +105,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image7_terms.svg`
 
 ![Terms](descriptions_svg/image7_terms.svg)
 
@@ -127,7 +120,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image8_terms.svg`
 
 ![Terms](descriptions_svg/image8_terms.svg)
 
@@ -143,7 +135,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image9_terms.svg`
 
 ![Terms](descriptions_svg/image9_terms.svg)
 
@@ -159,7 +150,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image10_terms.svg`
 
 ![Terms](descriptions_svg/image10_terms.svg)
 
@@ -175,7 +165,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image11_terms.svg`
 
 ![Terms](descriptions_svg/image11_terms.svg)
 
@@ -191,7 +180,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image12_terms.svg`
 
 ![Terms](descriptions_svg/image12_terms.svg)
 
@@ -207,7 +195,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image13_terms.svg`
 
 ![Terms](descriptions_svg/image13_terms.svg)
 
@@ -223,7 +210,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image14_terms.svg`
 
 ![Terms](descriptions_svg/image14_terms.svg)
 
@@ -239,7 +225,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image15_terms.svg`
 
 ![Terms](descriptions_svg/image15_terms.svg)
 
@@ -255,7 +240,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image16_terms.svg`
 
 ![Terms](descriptions_svg/image16_terms.svg)
 
@@ -271,7 +255,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image17_terms.svg`
 
 ![Terms](descriptions_svg/image17_terms.svg)
 
@@ -287,7 +270,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image18_terms.svg`
 
 ![Terms](descriptions_svg/image18_terms.svg)
 
@@ -303,7 +285,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image19_terms.svg`
 
 ![Terms](descriptions_svg/image19_terms.svg)
 
@@ -319,7 +300,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image21_terms.svg`
 
 ![Terms](descriptions_svg/image21_terms.svg)
 
@@ -335,7 +315,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image22_terms.svg`
 
 ![Terms](descriptions_svg/image22_terms.svg)
 
@@ -351,7 +330,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image23_terms.svg`
 
 ![Terms](descriptions_svg/image23_terms.svg)
 
@@ -367,7 +345,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image24_terms.svg`
 
 ![Terms](descriptions_svg/image24_terms.svg)
 
@@ -381,6 +358,10 @@ This document contains equations extracted from the presentation on Local Differ
 
 ![OUE RIA](equations_svg/image25.svg)
 
+**Term Definitions:**
+
+![Terms](descriptions_svg/image25_terms.svg)
+
 **Source:** attacks.pdf
 
 ---
@@ -390,6 +371,10 @@ This document contains equations extracted from the presentation on Local Differ
 **Equation:**
 
 ![OUE RPA](equations_svg/image26.svg)
+
+**Term Definitions:**
+
+![Terms](descriptions_svg/image26_terms.svg)
 
 **Source:** attacks.pdf
 
@@ -403,7 +388,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image27_terms.svg`
 
 ![Terms](descriptions_svg/image27_terms.svg)
 
@@ -417,6 +401,10 @@ This document contains equations extracted from the presentation on Local Differ
 
 ![OLH RIA](equations_svg/image28.svg)
 
+**Term Definitions:**
+
+![Terms](descriptions_svg/image28_terms.svg)
+
 **Source:** attacks.pdf
 
 ---
@@ -429,7 +417,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image29_terms.svg`
 
 ![Terms](descriptions_svg/image29_terms.svg)
 
@@ -445,7 +432,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image31_terms.svg`
 
 ![Terms](descriptions_svg/image31_terms.svg)
 
@@ -461,7 +447,6 @@ This document contains equations extracted from the presentation on Local Differ
 
 **Term Definitions:**
 
-**Image:** `descriptions_svg/image32_terms.svg`
 
 ![Terms](descriptions_svg/image32_terms.svg)
 
