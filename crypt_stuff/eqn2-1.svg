@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="650" height="90"
+     viewBox="0 0 650 90">
+  
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#C2DCF9"/>
+
+  <!-- Equation (tight layout) -->
+  <text x="20" y="60"
+        font-family="Times New Roman, serif"
+        font-size="36">
+
+    y<tspan baseline-shift="super" font-size="60%">*</tspan>
+    = argmax<tspan baseline-shift="sub" font-size="60%">y∈𝒟</tspan>
+    ∑<tspan baseline-shift="sub" font-size="60%">t∈T</tspan>
+    1<tspan baseline-shift="sub" font-size="60%">S(y)</tspan>(t).
+
+  </text>
+</svg>

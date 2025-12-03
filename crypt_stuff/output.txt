@@ -1,0 +1,186 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║     NYC TAXI DATA PIPELINE - AUTOMATED TEST SUITE                 ║
+║     Tests infrastructure, data flow, and end-to-end pipeline      ║
+╚═══════════════════════════════════════════════════════════════════╝
+    
+
+⚠️  PREREQUISITES:
+   1. Minikube must be running
+   2. All deployments must be applied:
+      - kubectl apply -f zookeeper-setup.yaml
+      - kubectl apply -f kafka-setup.yaml
+      - helm install my-neo4j-release neo4j/neo4j -f neo4j-values.yaml
+      - kubectl apply -f neo4j-service.yaml
+      - kubectl apply -f kafka-neo4j-connector.yaml
+   3. Port forwarding must be active in separate terminals:
+      - kubectl port-forward svc/kafka-service 9092:9092
+      - kubectl port-forward svc/neo4j-service 7474:7474 7687:7687
+
+
+
+======================================================================
+  NYC TAXI DATA PIPELINE - COMPREHENSIVE TEST SUITE
+======================================================================
+This test suite validates all components according to grader.md
+
+======================================================================
+  STEP 1.1: Testing Zookeeper Deployment
+======================================================================
+
+✓ Zookeeper Deployment Exists
+   Score: 3/3 points
+
+✓ Zookeeper Service Exists
+   Score: 3/3 points
+
+✓ Zookeeper Pod Running
+   Score: 4/4 points
+
+======================================================================
+  STEP 1.2: Testing Kafka Deployment
+======================================================================
+
+✓ Kafka Deployment Exists
+   Score: 3/3 points
+
+✓ Kafka Service Exists
+   Score: 3/3 points
+
+✓ Kafka Pod Running
+   Score: 4/4 points
+
+======================================================================
+  STEP 1.3: Testing Kafka Connectivity
+======================================================================
+
+⚠️  Make sure port-forwarding is active:
+   kubectl port-forward svc/kafka-service 9092:9092
+
+✓ Kafka Connection Successful
+   Score: 10/10 points
+   Details: Found 5 topics
+
+======================================================================
+  STEP 2.1: Testing Neo4j Deployment
+======================================================================
+
+✓ Neo4j Helm Release Exists
+   Score: 4/4 points
+
+✓ Neo4j Service Exists
+   Score: 4/4 points
+
+======================================================================
+  STEP 2.2: Testing Neo4j Connectivity
+======================================================================
+
+⚠️  Make sure port-forwarding is active:
+   kubectl port-forward svc/neo4j-service 7474:7474 7687:7687
+
+✓ Neo4j Connection Successful
+   Score: 7/7 points
+
+======================================================================
+  STEP 3: Testing Kafka-Neo4j Connector
+======================================================================
+
+✓ Connector Deployment Exists
+   Score: 7/7 points
+
+✓ Connector Pod Running
+   Score: 8/8 points
+
+======================================================================
+  STEP 4.1: Testing Data File
+======================================================================
+
+✓ Parquet File Valid
+   Score: 5/5 points
+   Details: Contains 3627882 rows
+
+======================================================================
+  STEP 4.2: Testing Data Producer Script
+======================================================================
+
+✓ Required Imports Present
+   Score: 3/3 points
+
+✓ Kafka Configuration Correct
+   Score: 3/3 points
+
+✓ Topic Name Correct
+   Score: 3/3 points
+
+✓ Bronx Filtering Present
+   Score: 3/3 points
+
+✓ Message Production Logic
+   Score: 3/3 points
+
+======================================================================
+  STEP 5.1: Testing Kafka Message Production
+======================================================================
+
+📥 Consuming messages from topic 'nyc_taxicab_data' (timeout: 5s)...
+
+✓ Messages in Kafka Topic
+   Score: 10/10 points
+   Details: Found 5 messages
+
+   Sample message: {
+  "trip_distance": 1.2,
+  "PULocationID": 159,
+  "DOLocationID": 159,
+  "fare_amount": 7.5
+}...
+
+======================================================================
+  STEP 5.2: Testing Neo4j Data Ingestion
+======================================================================
+
+✓ Data in Neo4j
+   Score: 10/10 points
+   Details: Found 42 nodes
+
+   Sample node: {'name': 159}
+
+======================================================================
+  FINAL TEST REPORT & RUBRIC
+======================================================================
+
+📊 SCORE BREAKDOWN:
+----------------------------------------------------------------------
+
+Infrastructure (Zookeeper + Kafka):
+  Score: 30/30 points
+    - Zookeeper infrastructure: 10/10
+    - Kafka infrastructure: 10/10
+    - Kafka connectivity: 10/10
+
+Neo4j Deployment:
+  Score: 15/15 points
+    - Neo4j deployment: 8/8
+    - Neo4j connectivity: 7/7
+
+Kafka-Neo4j Connector:
+  Score: 15/15 points
+    - Kafka-Neo4j connector: 15/15
+
+Data Loading:
+  Score: 20/20 points
+    - Data file validation: 5/5
+    - Data producer validation: 15/15
+
+End-to-End Pipeline:
+  Score: 20/20 points
+    - Kafka message validation: 10/10
+    - Neo4j data validation: 10/10
+
+======================================================================
+TOTAL SCORE: 100/100 (100.0%)
+======================================================================
+
+FINAL GRADE: A
+
+📋 RECOMMENDATIONS:
+  ✓ All tests passed! Pipeline is fully functional.

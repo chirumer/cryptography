@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="600" height="100"
+     viewBox="0 0 600 100">
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#C2DCF9"/>
+
+  <!-- Equation -->
+  <text x="20" y="60"
+        font-family="Times New Roman, serif"
+        font-size="36">
+
+    <tspan>y</tspan>
+    <tspan baseline-shift="super" font-size="60%">*</tspan>
+
+    <tspan xml:space="preserve"> = arg max</tspan>
+    <tspan baseline-shift="sub" font-size="60%">y∈𝒟</tspan>
+
+    <tspan xml:space="preserve">  ∑</tspan>
+    <tspan baseline-shift="sub" font-size="60%">t∈T</tspan>
+
+    <tspan xml:space="preserve">  1</tspan>
+    <tspan baseline-shift="sub" font-size="60%">S(y)</tspan>
+
+    <tspan>(t)</tspan>
+  </text>
+</svg>

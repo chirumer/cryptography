@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="450" height="90"
+     viewBox="0 0 450 90">
+  
+  <!-- Background inside box -->
+  <rect x="10" y="10" width="430" height="70" fill="#C2DCF9"/>
+
+  <!-- Dotted box -->
+  <rect x="10" y="10" width="430" height="70"
+        fill="none"
+        stroke="black"
+        stroke-width="2"
+        stroke-dasharray="5,5"/>
+
+  <!-- Equation (tight layout) -->
+  <text x="20" y="60"
+        font-family="Times New Roman, serif"
+        font-size="36">
+
+    y<tspan baseline-shift="super" font-size="60%">*</tspan>
+    = argmax<tspan baseline-shift="sub" font-size="60%">y∈𝒟</tspan>
+    ∑<tspan baseline-shift="sub" font-size="60%">t∈T</tspan>
+    1<tspan baseline-shift="sub" font-size="60%">S(y)</tspan>(t).
+
+  </text>
+</svg>

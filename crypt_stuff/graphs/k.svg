@@ -1,0 +1,42 @@
+<svg width="420" height="170" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Column headers -->
+  <rect x="10" y="10" width="120" height="30" fill="#f0f0f0" stroke="#000000" />
+  <rect x="130" y="10" width="280" height="30" fill="#f0f0f0" stroke="#000000" />
+
+  <!-- Header text -->
+  <text x="20" y="30" font-family="Arial" font-size="14" font-weight="bold">Parameter</text>
+  <text x="140" y="30" font-family="Arial" font-size="14" font-weight="bold">Meaning</text>
+
+  <!-- Row 1 -->
+  <rect x="10" y="40" width="120" height="25" fill="none" stroke="#000000" />
+  <rect x="130" y="40" width="280" height="25" fill="none" stroke="#000000" />
+  <text x="20" y="57" font-family="Times New Roman, serif" font-size="16" font-style="italic">β</text>
+  <text x="140" y="57" font-family="Arial" font-size="14">Fraction of fake users</text>
+
+  <!-- Row 2 -->
+  <rect x="10" y="65" width="120" height="25" fill="none" stroke="#000000" />
+  <rect x="130" y="65" width="280" height="25" fill="none" stroke="#000000" />
+  <text x="20" y="82" font-family="Times New Roman, serif" font-size="16" font-style="italic">
+    f<tspan baseline-shift="sub" font-size="12">T</tspan>
+  </text>
+  <text x="140" y="82" font-family="Arial" font-size="14">True frequency of targets</text>
+
+  <!-- Row 3 -->
+  <rect x="10" y="90" width="120" height="25" fill="none" stroke="#000000" />
+  <rect x="130" y="90" width="280" height="25" fill="none" stroke="#000000" />
+  <text x="20" y="107" font-family="Times New Roman, serif" font-size="16" font-style="italic">d</text>
+  <text x="140" y="107" font-family="Arial" font-size="14">Domain size</text>
+
+  <!-- Row 4 -->
+  <rect x="10" y="115" width="120" height="25" fill="none" stroke="#000000" />
+  <rect x="130" y="115" width="280" height="25" fill="none" stroke="#000000" />
+  <text x="20" y="132" font-family="Times New Roman, serif" font-size="16" font-style="italic">r</text>
+  <text x="140" y="132" font-family="Arial" font-size="14">Number of target items</text>
+
+  <!-- Row 5 -->
+  <rect x="10" y="140" width="120" height="25" fill="none" stroke="#000000" />
+  <rect x="130" y="140" width="280" height="25" fill="none" stroke="#000000" />
+  <text x="20" y="157" font-family="Times New Roman, serif" font-size="16" font-style="italic">ε</text>
+  <text x="140" y="157" font-family="Arial" font-size="14">Privacy level</text>
+</svg>

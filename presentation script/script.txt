@@ -1,0 +1,7 @@
+Slide 1: Title Slide
+
+SLide 2:
+LDP has been adopted by companies like Google and Apple
+Apple incorporated it in 2016 to collect frequently used Emoji data
+
+Slide 3:

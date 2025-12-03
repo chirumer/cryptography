@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="180">
+  <foreignObject x="0" y="0" width="520" height="180">
+    <body xmlns="http://www.w3.org/1999/xhtml">
+      <style>
+        table {
+          border-collapse: collapse;
+          font-family: sans-serif;
+          font-size: 13px;
+        }
+        th, td {
+          border: 1px solid #000;
+          padding: 4px 8px;
+        }
+        th {
+          background-color: #f0f0f0;
+          font-weight: bold;
+        }
+      </style>
+      <table>
+        <tr>
+          <th>Parameter</th>
+          <th>Meaning</th>
+        </tr>
+        <tr>
+          <td>&beta;</td>
+          <td>Fraction of fake users</td>
+        </tr>
+        <tr>
+          <td>f<sub>T</sub></td>
+          <td>True frequency of targets</td>
+        </tr>
+        <tr>
+          <td>d</td>
+          <td>Domain size</td>
+        </tr>
+        <tr>
+          <td>r</td>
+          <td>Number of target items</td>
+        </tr>
+        <tr>
+          <td>&epsilon;</td>
+          <td>Privacy level</td>
+        </tr>
+      </table>
+    </body>
+  </foreignObject>
+</svg>
