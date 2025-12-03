@@ -1,0 +1,46 @@
+\documentclass{beamer}
+\usepackage{amsmath,amssymb,booktabs,array}
+
+\begin{document}
+\begin{frame}{Maximal Gain Attack (MGA) on kRR, OUE, and OLH}
+\small
+
+\textbf{Idea:} For each fake user, choose a reported value \(y\) that maximizes
+\[
+\sum_{t \in T} \mathbf{1}_{S(y)}(t),
+\]
+where \(T\) is the set of target items and \(S(y)\) is the support set of \(y\).
+
+\medskip
+\begin{center}
+\begin{tabular}{p{1.7cm} p{8.7cm}}
+\toprule
+Protocol & MGA mechanism for each fake user \\
+\midrule
+kRR &
+Domain \(D = [d]\), support \(S(y) = \{y\}\). \\
+& Maximize \(\sum_{t\in T}\mathbf{1}_{S(y)}(t)\le 1\), so choose any target:
+fake user \emph{always reports} a target item \(y \in T\). \\[0.3em]
+\midrule
+OUE &
+Domain \(D = \{0,1\}^d\), support \(S(y) = \{v : y_v = 1\}\). \\
+& Maximize \(\sum_{t\in T}\mathbf{1}_{S(y)}(t)\le |T|\) by setting
+\(y_t = 1\) for all \(t \in T\). \\
+& To mimic genuine users, also set \(l \approx p + (d-1)q - |T|\)
+\emph{additional non–target bits} to 1, so the total number of 1s
+matches the expected number for honest users. \\[0.3em]
+\midrule
+OLH &
+Domain \(D = \{(H,a)\}\), support \(S(H,a) = \{v : H(v)=a\}\). \\
+& Maximize \(\sum_{t\in T}\mathbf{1}_{S(H,a)}(t)\le |T|\) by choosing
+a hash function \(H\) and bucket \(a\) such that many targets collide:
+\(H(t)=a\) for \(t\in T\). \\
+& In theory: pick \(H\) with \(H(t)=a\) for all \(t\in T\); in practice:
+search/sampler over hash functions and use the one that maps the
+largest number of targets to the same \(a\). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{frame}
+\end{document}
